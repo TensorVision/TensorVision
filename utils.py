@@ -19,7 +19,7 @@ flags.DEFINE_string('name', None,
                     'Folder where Data will be stored.')
 
 #usage: train.py --config=my_model_params.py
-flags.DEFINE_string('config', 'Examples/example_params.py',
+flags.DEFINE_string('config', 'Examples/cifar10_minimal.py',
                     'File storing model parameters.')
 
 def get_train_dir():

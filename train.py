@@ -22,7 +22,7 @@ import utils as utils
 
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
-                    level=logging.DEBUG,
+                    level=logging.INFO,
                     stream=sys.stdout)
 
 flags = tf.app.flags
