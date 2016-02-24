@@ -23,7 +23,7 @@ num_examples_per_epoch_for_eval = 65400
 
 
 # Train Params
-batch_size = 70
+batch_size = 128
 
 max_steps = 200000   # Number of steps to run trainer.
 learning_rate = 0.01 # Learning rate 
