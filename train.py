@@ -206,7 +206,7 @@ def run_training(train_dir):
         # Evaluate against the training set.
 
       if (step+1) % 1000 == 0 or (step + 1) == params.max_steps:                                   
-        logging.Info('Doing Evaluate with whole epoche of Training Data:')
+        logging.info('Doing Evaluate with whole epoche of Training Data:')
         precision= utils.do_eval(sess,
                                  eval_train,
                                  params.num_examples_per_epoch_for_train,
@@ -214,7 +214,7 @@ def run_training(train_dir):
                                  name="Train")
         write_precision_to_summary(precision, summary_writer,"Train" , step, sess)
     
-        #logging.Info('Validation Data Eval:')
+        #logging.info('Validation Data Eval:')
         #TODO: Analyse Validation Error.
         #precision= utils.do_eval(sess,
         #                         eval_val,
@@ -223,7 +223,7 @@ def run_training(train_dir):
         #                         name="Val")
         #write_precision_to_summary(precision, summary_writer,"Val" , step, sess)
 
-        logging.Info('Doing Evaluation with Testing Data')
+        logging.info('Doing Evaluation with Testing Data')
         precision= utils.do_eval(sess,
                                  eval_test,
                                  params.num_examples_per_epoch_for_eval,
