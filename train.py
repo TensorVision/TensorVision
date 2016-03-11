@@ -16,17 +16,19 @@ import tensorflow.python.platform
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
+
  
 import utils as utils
 
-
-
-logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
-                    level=logging.INFO,
-                    stream=sys.stdout)
-
 flags = tf.app.flags
 FLAGS = flags.FLAGS
+
+
+#configure logging
+
+logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
+                    level=logging.DEBUG,
+                    stream=sys.stdout)
 
 
 
@@ -45,9 +47,31 @@ def _copy_parameters_to_traindir(input_file, target_name, target_dir):
 
 
 def initialize_training_folder(train_dir):
+  """Creating the training folder and copy all model files into it.
+
+  The model will be executed from the training folder and all
+  outputs will be saved there.
+
+  Args:
+    train_dir: The training folder
+  """
+
   target_dir = os.path.join(train_dir, "model_files")  
   if not os.path.exists(target_dir):
     os.makedirs(target_dir)
+
+  # Creating an additional logging saving the console outputs
+  # into the training folder
+  logging_file = os.path.join(train_dir, "output.log")
+  filewriter = logging.FileHandler(logging_file, mode='w')
+  formatter = logging.Formatter('%(asctime)s %(name)-3s %(levelname)-3s %(message)s')
+  filewriter.setLevel(logging.INFO)
+  filewriter.setFormatter(formatter)
+  logging.getLogger('').addHandler(filewriter)
+
+  #TODO: read more about loggers and make file logging neater.
+
+
   config_file = tf.app.flags.FLAGS.config
   params = imp.load_source("params", config_file)  
   _copy_parameters_to_traindir(config_file, "params.py", target_dir)
@@ -60,6 +84,15 @@ def maybe_download_and_extract(train_dir):
   target_dir = os.path.join(train_dir, "model_files")  
   data_input = imp.load_source("input", os.path.join(target_dir, "input.py"))
   data_input.maybe_download_and_extract(utils.cfg.data_dir)
+
+
+def write_precision_to_summary(precision, summary_writer, name, global_step, sess):
+  #write result to summary
+  summary = tf.Summary()
+  #summary.ParseFromString(sess.run(summary_op))
+  summary.value.add(tag='Evaluation/' + name + ' Precision',
+                    simple_value=precision)
+  summary_writer.add_summary(summary, global_step)
 
 
 def run_training(train_dir):
@@ -89,6 +122,28 @@ def run_training(train_dir):
     # Build a Graph that computes predictions from the inference network.
     logits = network.inference(image_batch, keep_prob)
 
+
+    with tf.name_scope('Validation'):
+      with tf.name_scope('Input_train_data'):
+        image_batch_val, label_batch_val = data_input.distorted_inputs(
+                                                               utils.cfg.data_dir,
+                                                               params.batch_size)
+      with tf.name_scope('Input_val_data'):  
+        image_batch_train, label_batch_train = data_input.inputs(False,
+                                                               utils.cfg.data_dir,
+                                                               params.batch_size)
+      with tf.name_scope('Input_test_data'):  
+        image_batch_test, label_batch_test = data_input.inputs(True,
+                                                               utils.cfg.data_dir,
+                                                               params.batch_size)
+
+      tf.get_variable_scope().reuse_variables()
+      logits_train = network.inference(image_batch_train, keep_prob)
+      logits_val = network.inference(image_batch_val, keep_prob)
+      logits_test = network.inference(image_batch_test, keep_prob)
+    
+
+
     # Add to the Graph the Ops for loss calculation.
     loss = network.loss(logits, label_batch)
 
@@ -97,6 +152,9 @@ def run_training(train_dir):
                             learning_rate=params.learning_rate)
 
     # Add the Op to compare the logits to the labels during evaluation.
+    eval_train = network.evaluation(logits_train, label_batch_train)
+    eval_val = network.evaluation(logits_val, label_batch_val)
+    eval_test = network.evaluation(logits_test, label_batch_test)
     eval_correct = network.evaluation(logits, label_batch)
 
     # Build the summary operation based on the TF collection of Summaries.
@@ -142,7 +200,7 @@ def run_training(train_dir):
         duration = time.time() - start_time
         examples_per_sec = params.batch_size / duration
         sec_per_batch = float(duration)
-        print('Step %d: loss = %.2f ( %.3f sec (per Batch); %.1f examples/sec;)'
+        logging.info('Step %d: loss = %.2f ( %.3f sec (per Batch); %.1f examples/sec;)'
                                      % (step, loss_value,
                                      sec_per_batch, examples_per_sec))
         # Update the events file.
@@ -150,19 +208,40 @@ def run_training(train_dir):
         summary_writer.add_summary(summary_str, step)
 
       # Save a checkpoint and evaluate the model periodically.
-      if (step + 1) % 1000 == 0 or (step + 1) == params.max_steps:
+      if (step+1) % 1000 == 0 or (step + 1) == params.max_steps:
         checkpoint_path = os.path.join(train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path , global_step=step)
         # Evaluate against the training set.
 
-      if (step + 1) % 5000 == 0 or (step + 1) == params.max_steps:  
+      if (step+1) % 1000 == 0 or (step + 1) == params.max_steps:                                   
         print('Training Data Eval:')
-        utils.do_eval(sess,
-                      eval_correct,
-                      keep_prob,
-                      params.num_examples_per_epoch_for_train,
-                      params)
+        precision= utils.do_eval(sess,
+                                 eval_train,
+                                 keep_prob,
+                                 params.num_examples_per_epoch_for_train,
+                                 params,
+                                 name="Train")
+        write_precision_to_summary(precision, summary_writer,"Train" , step, sess)
+    
+        print('Validation Data Eval:')
+        precision= utils.do_eval(sess,
+                                 eval_val,
+                                 keep_prob,
+                                 params.num_examples_per_epoch_for_train,
+                                 params,
+                                 name="Val")
+        write_precision_to_summary(precision, summary_writer,"Val" , step, sess)
 
+        print('Testing Data Eval:')
+        precision= utils.do_eval(sess,
+                                 eval_test,
+                                 keep_prob,
+                                 params.num_examples_per_epoch_for_eval,
+                                 params,
+                                 name="Test")
+        write_precision_to_summary(precision, summary_writer,"Test" , step, sess)
+
+    
 def main(_):
   if FLAGS.config == "example_params.py":
     logging.info("Training on default config.")

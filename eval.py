@@ -96,7 +96,8 @@ def evaluate(train_dir):
                   eval_correct=eval_correct,
                   keep_prob=keep_prob, 
                   num_examples=params.num_examples_per_epoch_for_eval,
-                  params=params)
+                  params=params,
+                  name="eval")
 
 
 

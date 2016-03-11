@@ -82,7 +82,9 @@ def input_pipeline(filename, batch_size, num_labels,
     image_batch, label_batch = tf.train.batch([pr_image, pr_label],
                                               batch_size=batch_size)
     
-    tf.image_summary('images', image_batch)                                                  
+    # Display the training images in the visualizer.
+    tensor_name = image.op.name
+    tf.image_summary(tensor_name + 'images', image_batch)                                                  
     return image_batch, label_batch
 
 

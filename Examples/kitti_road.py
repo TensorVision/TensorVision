@@ -3,8 +3,8 @@
 
 # Specify Model to be trained
 input_file = "Inputs/kitti_road_input.py"
-network_file = "Networks/cnn2_2.py"
-opt_file = "Optimizer/exp_decay.py"
+network_file = "Networks/minimal_cnn.py"
+opt_file = "Optimizer/adam.py"
 
 
 # Optionally: Where to download data

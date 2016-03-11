@@ -34,6 +34,8 @@ def get_train_dir():
   return train_dir
 
 
+#TODO: right place to store placeholders
+
 def placeholder_inputs(batch_size):
   """Generate placeholder variables to represent the the input tensors.
 
@@ -84,12 +86,15 @@ def fill_feed_dict(kb, train):
   return feed_dict
 
 
+#TODO: right place to store eval?
+
 
 def do_eval(sess,
             eval_correct,
             keep_prob,
             num_examples,
-            params):
+            params,
+            name):
   """Runs one evaluation against the full epoch of data.
 
   Args:
@@ -104,13 +109,15 @@ def do_eval(sess,
   num_examples = steps_per_epoch * params.batch_size
   feed_dict = fill_feed_dict(keep_prob,
                              train = False)
+
+  #run evaluation on num_examples many images
   for step in xrange(steps_per_epoch):
     start_time = time.time()
     true_count += sess.run(eval_correct, feed_dict=feed_dict)
     duration = time.time() - start_time
 
-    if step % 20 == 0:
-
+    #if step % 20 == 0:
+    if False:
 
       num_examples_per_step = params.batch_size
       examples_per_sec = num_examples_per_step / duration
@@ -119,5 +126,8 @@ def do_eval(sess,
       format_str = ('%s: step %d,  %.3f sec (per batch); (%.1f examples/sec)')
       print (format_str % (datetime.now(), step, sec_per_batch,examples_per_sec))
   precision = true_count / num_examples
-  print('  Num examples: %d  Num correct: %d  Precision @ 1: %0.04f' %
+  
+  logging.info('  Num examples: %d  Num correct: %d  Precision @ 1: %0.04f' %
         (num_examples, true_count, precision))
+
+  return precision

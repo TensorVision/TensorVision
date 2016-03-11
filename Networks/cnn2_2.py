@@ -2,14 +2,18 @@ import tensorflow as tf
 import re
 
 import params
+import sys
+import logging
+
 
 # Global constants describing the CIFAR-10 data set.
 IMAGE_SIZE = params.image_size
 NUM_CHANNELS = params.num_channels
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE
 NUM_CLASSES = params.num_classes
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = params.num_examples_per_epoch_for_train
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = params.num_examples_per_epoch_for_eval
+
+
+
 
 
 def _variable_with_weight_decay(name, shape, stddev, wd):
@@ -29,22 +33,27 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
     Variable Tensor
   """
 
-  initial = tf.truncated_normal(shape, stddev=stddev)
-  var = tf.Variable(initial, name=name)
+  
+  initializer = tf.truncated_normal_initializer(stddev=stddev)
+  var = tf.get_variable(name, shape=shape, 
+                        initializer=initializer)
 
-  if wd:
+
+  if wd and (tf.get_variable_scope().reuse == False):
+    var_name = tf.get_variable_scope().name + name
+    logging.debug("Adding weight decay for variable %s", var_name)
     weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
     tf.add_to_collection('losses', weight_decay)
   return var
 
 
 def weight_variable(name, shape, stddev=0.1):
-  initial = tf.truncated_normal(shape, stddev=0.1)
-  return tf.Variable(initial, name=name)
+  initializer = tf.truncated_normal_initializer(stddev=stddev)
+  return tf.get_variable(name, shape=shape, initializer=initializer)
 
 def bias_variable(name, shape, constant=0.1):
-  initial = tf.constant(constant, shape=shape)
-  return tf.Variable(initial, name=name)
+  initializer = tf.constant_initializer(constant)
+  return tf.get_variable(name, shape=shape, initializer=initializer)
   
 def conv2d(x, W, strides=[1, 1, 1, 1]):
   return tf.nn.conv2d(x, W, strides=strides, padding='SAME')
@@ -109,12 +118,12 @@ def inference(images, keep_prob, train=True,
   norm1 = normalization(h_pool1, name='norm1')
 
   # Second Convolutional Layer
-  with tf.name_scope('Conv2'):
+  with tf.variable_scope('Conv2') as scope:
     W_conv2 = _variable_with_weight_decay('weights', [5, 5, num_filter_1, num_filter_2],
                                           stddev=1e-4, wd=0.0)
     b_conv2 = bias_variable('biases', [num_filter_2])
     
-    h_conv2 = tf.nn.relu(conv2d(norm1, W_conv2) + b_conv2)
+    h_conv2 = tf.nn.relu(conv2d(norm1, W_conv2) + b_conv2, name=scope.name)
     _activation_summary(h_conv2)
 
   # Second Pooling Layer
@@ -148,11 +157,11 @@ def inference(images, keep_prob, train=True,
 
 
   # Computing Softmax
-  with tf.name_scope('logits'):
+  with tf.variable_scope('logits') as scope:
     W_fc2 = _variable_with_weight_decay('weights', [192, NUM_CLASSES],
                                         stddev=1/192.0, wd=0.0)
     b_fc2 = bias_variable('biases', [NUM_CLASSES])
-    logits = tf.matmul(fullc2, W_fc2) + b_fc2
+    logits = tf.add(tf.matmul(fullc2, W_fc2),b_fc2, name=scope.name)
     _activation_summary(logits)
 
   return logits

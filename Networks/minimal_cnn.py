@@ -8,13 +8,13 @@ NUM_CHANNELS = params.num_channels
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE
 NUM_CLASSES = params.num_classes
 
-def weight_variable(name, shape):
-  initial = tf.truncated_normal(shape, stddev=0.1)
-  return tf.Variable(initial, name=name)
+def weight_variable(name, shape, stddev=0.1):
+  initializer = tf.truncated_normal_initializer(stddev=stddev)
+  return tf.get_variable(name, shape=shape, initializer=initializer)
 
-def bias_variable(name, shape):
-  initial = tf.constant(0.1, shape=shape)
-  return tf.Variable(initial, name=name)
+def bias_variable(name, shape, constant=0.1):
+  initializer = tf.constant_initializer(constant)
+  return tf.get_variable(name, shape=shape, initializer=initializer)
   
 def conv2d(x, W):
   return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
@@ -55,25 +55,25 @@ def inference(images, keep_prob, train=True, num_filter_1=32, num_filter_2=64):
   """
 
   # First Convolutional Layer
-  with tf.name_scope('Conv1'):
+  with tf.variable_scope('Conv1') as scope:
     # Adding Convolutional Layers                        
     W_conv1 = weight_variable('weights', [5, 5, NUM_CHANNELS, num_filter_1])
     b_conv1 = bias_variable('biases', [num_filter_1])
       
     x_image = tf.reshape(images, [-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS])
     
-    h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
+    h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1, name=scope.name)
     _activation_summary(h_conv1)
     
   # First Pooling Layer  
   h_pool1 = max_pool_2x2(h_conv1, name='pool1')
 
   # Second Convolutional Layer
-  with tf.name_scope('Conv2'):
+  with tf.variable_scope('Conv2') as scope:
     W_conv2 = weight_variable('weights', [5, 5, num_filter_1, num_filter_2])
     b_conv2 = bias_variable('biases', [num_filter_2])
     
-    h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
+    h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2, name=scope.name)
     _activation_summary(h_conv2)
 
   # Second Pooling Layer
@@ -86,21 +86,21 @@ def inference(images, keep_prob, train=True, num_filter_1=32, num_filter_2=64):
 
 
   # Adding Fully Connected Layers
-  with tf.name_scope('fc1'):
+  with tf.variable_scope('fc1') as scope:
     W_fc1 = weight_variable('weights', [dim, 1024])
     b_fc1 = bias_variable('biases',[1024])
     
     h_pool2_flat = tf.reshape(h_pool2, [-1, dim])
-    h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+    h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1, name=scope.name)
     _activation_summary(h_fc1)
 
   # Adding Dropout
   h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='dropout')
 
-  with tf.name_scope('logits'):
+  with tf.variable_scope('logits') as scope:
     W_fc2 = weight_variable('weights', [1024, NUM_CLASSES])
     b_fc2 = bias_variable('biases', [NUM_CLASSES])
-    logits = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+    logits = tf.add(tf.matmul(h_fc1_drop, W_fc2), b_fc2, name=scope.name)
     _activation_summary(logits)
 
   return logits
@@ -120,7 +120,7 @@ def loss(logits, labels):
   # to 1-hot dense float vectors (that is we will have batch_size vectors,
   # each with NUM_CLASSES values, all of which are 0.0 except there will
   # be a 1.0 in the entry corresponding to the label).
-  with tf.name_scope('loss'):
+  with tf.variable_scope('loss') as scope:
     batch_size = tf.size(labels)
     labels = tf.expand_dims(labels, 1)
     indices = tf.expand_dims(tf.range(0, batch_size), 1)
