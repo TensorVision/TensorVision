@@ -15,8 +15,6 @@ from shutil import copyfile
 import tensorflow.python.platform
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-
-
  
 import utils as utils
 
@@ -44,8 +42,6 @@ def _copy_parameters_to_traindir(input_file, target_name, target_dir):
   copyfile(input_file, target_file)
     
     
-
-
 def initialize_training_folder(train_dir):
   """Creating the training folder and copy all model files into it.
 
@@ -116,13 +112,12 @@ def run_training(train_dir):
     with tf.name_scope('Input'):
       image_batch, label_batch = data_input.distorted_inputs(utils.cfg.data_dir,
                                                              params.batch_size)
-    # Generate placeholders for the images and labels.
-      keep_prob = utils.placeholder_inputs(params.batch_size)
 
     # Build a Graph that computes predictions from the inference network.
-    logits = network.inference(image_batch, keep_prob)
+    logits = network.inference(image_batch, train=True)
 
-
+    # Build Graph for Validation. This Graph shares Variabels with
+    # the training Graph
     with tf.name_scope('Validation'):
       with tf.name_scope('Input_train_data'):
         image_batch_val, label_batch_val = data_input.distorted_inputs(
@@ -137,10 +132,13 @@ def run_training(train_dir):
                                                                utils.cfg.data_dir,
                                                                params.batch_size)
 
+      #activate the reuse of Variabels  
       tf.get_variable_scope().reuse_variables()
-      logits_train = network.inference(image_batch_train, keep_prob)
-      logits_val = network.inference(image_batch_val, keep_prob)
-      logits_test = network.inference(image_batch_test, keep_prob)
+
+      #Build Networks for Validation and Evaluation Data
+      logits_train = network.inference(image_batch_train, train=False)
+      logits_val = network.inference(image_batch_val, train=False)
+      logits_test = network.inference(image_batch_test, train=False)
     
 
 
@@ -181,18 +179,12 @@ def run_training(train_dir):
     for step in xrange(params.max_steps):
       start_time = time.time()
 
-      # Fill a feed dictionary with the actual set of images and labels
-      # for this particular training step.
-      feed_dict = utils.fill_feed_dict(keep_prob,
-                                       train = True)
-
       # Run one step of the model.  The return values are the activations
       # from the `train_op` (which is discarded) and the `loss` Op.  To
       # inspect the values of your Ops or variables, you may include them
       # in the list passed to sess.run() and the value tensors will be
       # returned in the tuple from the call.
-      _, loss_value = sess.run([train_op, loss],
-                               feed_dict=feed_dict)
+      _, loss_value = sess.run([train_op, loss])
 
       # Write the summaries and print an overview fairly often.
       if step % 100 == 0:
@@ -204,7 +196,7 @@ def run_training(train_dir):
                                      % (step, loss_value,
                                      sec_per_batch, examples_per_sec))
         # Update the events file.
-        summary_str = sess.run(summary_op, feed_dict=feed_dict)
+        summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
 
       # Save a checkpoint and evaluate the model periodically.
@@ -214,28 +206,26 @@ def run_training(train_dir):
         # Evaluate against the training set.
 
       if (step+1) % 1000 == 0 or (step + 1) == params.max_steps:                                   
-        print('Training Data Eval:')
+        logging.Info('Doing Evaluate with whole epoche of Training Data:')
         precision= utils.do_eval(sess,
                                  eval_train,
-                                 keep_prob,
                                  params.num_examples_per_epoch_for_train,
                                  params,
                                  name="Train")
         write_precision_to_summary(precision, summary_writer,"Train" , step, sess)
     
-        print('Validation Data Eval:')
-        precision= utils.do_eval(sess,
-                                 eval_val,
-                                 keep_prob,
-                                 params.num_examples_per_epoch_for_train,
-                                 params,
-                                 name="Val")
-        write_precision_to_summary(precision, summary_writer,"Val" , step, sess)
+        #logging.Info('Validation Data Eval:')
+        #TODO: Analyse Validation Error.
+        #precision= utils.do_eval(sess,
+        #                         eval_val,
+        #                         params.num_examples_per_epoch_for_train,
+        #                         params,
+        #                         name="Val")
+        #write_precision_to_summary(precision, summary_writer,"Val" , step, sess)
 
-        print('Testing Data Eval:')
+        logging.Info('Doing Evaluation with Testing Data')
         precision= utils.do_eval(sess,
                                  eval_test,
-                                 keep_prob,
                                  params.num_examples_per_epoch_for_eval,
                                  params,
                                  name="Test")

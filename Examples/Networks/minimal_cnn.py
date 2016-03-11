@@ -42,17 +42,18 @@ def _activation_summary(x):
   tf.histogram_summary(tensor_name + '/activations', x)
   tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
-def inference(images, keep_prob, train=True, num_filter_1=32, num_filter_2=64): 
+def inference(images, train=True): 
   """Build the MNIST model up to where it may be used for inference.
 
   Args:
     images: Images placeholder, from inputs().
-    num_filter_1: Amount of filters in conv1.
-    num_filter_2: Amount of filters in conv2.
+    train: whether the network is used for train of inference
 
   Returns:
     softmax_linear: Output tensor with the computed logits.
   """
+  num_filter_1=32
+  num_filter_2=64
 
   # First Convolutional Layer
   with tf.variable_scope('Conv1') as scope:
@@ -95,12 +96,13 @@ def inference(images, keep_prob, train=True, num_filter_1=32, num_filter_2=64):
     _activation_summary(h_fc1)
 
   # Adding Dropout
-  h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='dropout')
+  if train:
+    h_fc1 = tf.nn.dropout(h_fc1, 0.5, name='dropout')
 
   with tf.variable_scope('logits') as scope:
     W_fc2 = weight_variable('weights', [1024, NUM_CLASSES])
     b_fc2 = bias_variable('biases', [NUM_CLASSES])
-    logits = tf.add(tf.matmul(h_fc1_drop, W_fc2), b_fc2, name=scope.name)
+    logits = tf.add(tf.matmul(h_fc1, W_fc2), b_fc2, name=scope.name)
     _activation_summary(logits)
 
   return logits

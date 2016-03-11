@@ -91,7 +91,6 @@ def fill_feed_dict(kb, train):
 
 def do_eval(sess,
             eval_correct,
-            keep_prob,
             num_examples,
             params,
             name):
@@ -100,34 +99,25 @@ def do_eval(sess,
   Args:
     sess: The session in which the model has been trained.
     eval_correct: The Tensor that returns the number of correct predictions.
-    keep_prob: The keep prob placeholder.
+    num_examples: Amount of examples to use in eval
+    params: class containing relevant parameters
+    name: string descriping the data the evaluation is run on
   """
   # And run one epoch of eval.
 
   true_count = 0  # Counts the number of correct predictions.
   steps_per_epoch =  num_examples // params.batch_size
   num_examples = steps_per_epoch * params.batch_size
-  feed_dict = fill_feed_dict(keep_prob,
-                             train = False)
 
   #run evaluation on num_examples many images
   for step in xrange(steps_per_epoch):
     start_time = time.time()
-    true_count += sess.run(eval_correct, feed_dict=feed_dict)
+    true_count += sess.run(eval_correct)
     duration = time.time() - start_time
 
-    #if step % 20 == 0:
-    if False:
-
-      num_examples_per_step = params.batch_size
-      examples_per_sec = num_examples_per_step / duration
-      sec_per_batch = float(duration)
-
-      format_str = ('%s: step %d,  %.3f sec (per batch); (%.1f examples/sec)')
-      print (format_str % (datetime.now(), step, sec_per_batch,examples_per_sec))
   precision = true_count / num_examples
   
-  logging.info('  Num examples: %d  Num correct: %d  Precision @ 1: %0.04f' %
-        (num_examples, true_count, precision))
+  logging.info('Data: %s  Num examples: %d  Num correct: %d  Precision @ 1: %0.04f' %
+        (name, num_examples, true_count, precision))
 
   return precision

@@ -13,9 +13,6 @@ IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE
 NUM_CLASSES = params.num_classes
 
 
-
-
-
 def _variable_with_weight_decay(name, shape, stddev, wd):
   """Helper to create an initialized Variable with weight decay.
 
@@ -85,18 +82,19 @@ def _activation_summary(x):
   tf.histogram_summary(tensor_name + '/activations', x)
   tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
-def inference(images, keep_prob, train=True,
-              num_filter_1=64, num_filter_2=64): 
+def inference(images, train=True): 
   """Build the MNIST model up to where it may be used for inference.
 
   Args:
     images: Images placeholder, from inputs().
-    num_filter_1: Amount of filters in conv1.
-    num_filter_2: Amount of filters in conv2.
+    train: whether the network is used for train of inference
 
   Returns:
     softmax_linear: Output tensor with the computed logits.
   """
+
+  num_filter_1=64
+  num_filter_2=64
 
   # First Convolutional Layer
   with tf.variable_scope('Conv1') as scope:
