@@ -1,6 +1,6 @@
 The following python moduls need to be installed:
 
-tensorflow
+tensorflow 0.71
 numpy
 scipy
 PIL / pillow

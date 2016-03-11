@@ -2,9 +2,9 @@
 """This file contains all model parameters"""
 
 # Specify Model to be trained
-input_file = "Inputs/cifar10_input.py"
-network_file = "Networks/cnn2_2.py"
-opt_file = "Optimizer/exp_decay.py"
+input_file = "Examples/Inputs/cifar10_input.py"
+network_file = "Examples/Networks/cifar_net.py"
+opt_file = "Examples/Optimizer/exp_decay.py"
 
 
 # Optionally: Where to download data
