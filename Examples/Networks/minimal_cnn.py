@@ -3,6 +3,8 @@ import re
 
 import params
 
+import logging
+
 IMAGE_SIZE = params.image_size
 NUM_CHANNELS = params.num_channels
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE
@@ -60,14 +62,13 @@ def inference(images, train=True):
     # Adding Convolutional Layers                        
     W_conv1 = weight_variable('weights', [5, 5, NUM_CHANNELS, num_filter_1])
     b_conv1 = bias_variable('biases', [num_filter_1])
-      
-    x_image = tf.reshape(images, [-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS])
     
-    h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1, name=scope.name)
+    h_conv1 = tf.nn.relu(conv2d(images, W_conv1) + b_conv1, name=scope.name)
     _activation_summary(h_conv1)
     
   # First Pooling Layer  
   h_pool1 = max_pool_2x2(h_conv1, name='pool1')
+
 
   # Second Convolutional Layer
   with tf.variable_scope('Conv2') as scope:
