@@ -302,7 +302,7 @@ def maybe_download_and_extract(H, dest_directory):
     print()
     statinfo = os.stat(filepath)
     print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
-  zipfile.ZipFile('data_road.zip', 'r').extractall(dest_directory)
+  zipfile.ZipFile(filepath, 'r').extractall(dest_directory)
   process_data(H, dest_directory)
 
 def process_data(H, dest_directory):
