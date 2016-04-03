@@ -303,9 +303,9 @@ def maybe_download_and_extract(H, dest_directory):
     statinfo = os.stat(filepath)
     print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
     zipfile.ZipFile(filepath, 'r').extractall(dest_directory)
-    process_data(dest_directory)
+    process_data(H, dest_directory)
 
-def process_data(dest_directory):
+def process_data(H, dest_directory):
   # this are the dictionaries of data    
   path_data = os.path.join(dest_directory,"data_road/training/image_2/")
   path_gt = os.path.join(dest_directory,"data_road/training/gt_image_2/")
