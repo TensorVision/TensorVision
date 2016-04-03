@@ -37,7 +37,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.DEBUG,
                     stream=sys.stdout)
 
-def input_pipeline(filename, batch_size, num_labels,
+def input_pipeline(H, filename, batch_size, num_labels,
                    processing_image=lambda x:x,
                    processing_label=lambda y:y,
                    num_epochs=None):
@@ -73,7 +73,7 @@ def input_pipeline(filename, batch_size, num_labels,
                                                 shuffle=True)
 
     # Reads the actual images from                                                 
-    image, label = read_images_from_disk(input_queue,num_labels=num_labels)
+    image, label = read_images_from_disk(H, input_queue,num_labels=num_labels)
     pr_image = processing_image(image)
     pr_label = processing_label(label)                             
 
@@ -96,7 +96,7 @@ def inputs(H, eval_data, data_dir, num_labels=2,num_epochs=None):
   def pr_image(image):
     return tf.image.per_image_whitening(image)
 
-  return input_pipeline(filename, H['solver']['batch_size'],num_labels, processing_image=pr_image
+  return input_pipeline(H, filename, H['solver']['batch_size'],num_labels, processing_image=pr_image
                         ,num_epochs=None)
 
 def distorted_inputs(H, data_dir,  num_labels=2, num_epochs=None):
@@ -117,12 +117,12 @@ def distorted_inputs(H, data_dir,  num_labels=2, num_epochs=None):
 
     return tf.image.per_image_whitening(distorted_image)
 
-  return input_pipeline(filename, H['solver']['batch_size'] ,num_labels, processing_image=pr_image
+  return input_pipeline(H, filename, H['solver']['batch_size'] ,num_labels, processing_image=pr_image
                         ,num_epochs=None)
 
         
 
-def read_images_from_disk(input_queue, num_labels):
+def read_images_from_disk(H, input_queue, num_labels):
   """Consumes a single filename and label as a ' '-delimited string.
 
   Args:
@@ -134,13 +134,13 @@ def read_images_from_disk(input_queue, num_labels):
   label = input_queue[1]
   file_contents = tf.read_file(input_queue[0])
   example = tf.image.decode_png(file_contents, channels=3)
-  processed_example = preprocessing(example)
+  processed_example = preprocessing(H, example)
   # processed_labels = create_one_hot(label,num_labels)
   processed_label = label
   return processed_example, processed_label
   
   
-def preprocessing(image):
+def preprocessing(H, image):
     resized_image = tf.image.resize_images(image, H['arch']['image_size'],
                                            H['arch']['image_size'], method=0)
     resized_image.set_shape([H['arch']['image_size'],H['arch']['image_size'],3])
@@ -302,8 +302,8 @@ def maybe_download_and_extract(H, dest_directory):
     print()
     statinfo = os.stat(filepath)
     print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
-    zipfile.ZipFile(filepath, 'r').extractall(dest_directory)
-    process_data(H, dest_directory)
+  zipfile.ZipFile('data_road.zip', 'r').extractall(dest_directory)
+  process_data(H, dest_directory)
 
 def process_data(H, dest_directory):
   # this are the dictionaries of data    
