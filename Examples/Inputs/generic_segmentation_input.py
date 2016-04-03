@@ -33,25 +33,28 @@ from tensorflow.python.training import queue_runner
 
 from tensorflow.python.ops import random_ops
 
+import params
+
 # Global constents descriping data set
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.DEBUG,
                     stream=sys.stdout)
 
-def input_pipeline(filename, batch_size, num_labels,
-                   processing_image=lambda x:x,
-                   processing_label=lambda y:y,
+def input_pipeline(filename, batch_size, num_classes=num_classes
+                   processing_image=lambda (x,y) : (x,y),
                    num_epochs=None):
                        
-    """The input pipeline for reading images classification data.
+    """The input pipeline for reading images segmentation data.
      
     The data should be stored in a single text file of using the format:
      
-     /path/to/image_0 label_0
-     /path/to/image_1 label_1
-     /path/to/image_2 label_2
+     /path/to/image_0 /path/to/label_0
+     /path/to/image_1 /path/to/label_1
+     /path/to/image_2 /path/to/label_2
      ...
+
+     Image and Labels will have the same dimenstion.
     
      Args:
        filename: the path to the txt file
@@ -59,15 +62,16 @@ def input_pipeline(filename, batch_size, num_labels,
        num_epochs: optionally limited the amount of epochs
       
     Returns:
-       List with all filenames in file image_list_file
+       image_batch: batch which images
+       label_batch: batch which labels
     """
     
-    # Reads pfathes of images together with there labels
+    # Reads pathes of images together with there labels
     image_list, label_list = read_labeled_image_list(filename)
 
                                                      
     images = ops.convert_to_tensor(image_list, dtype=dtypes.string)
-    labels = ops.convert_to_tensor(label_list, dtype=dtypes.int32)
+    labels = ops.convert_to_tensor(label_list, dtype=dtypes.string)
     
     # Makes an input queue
     input_queue = tf.train.slice_input_producer([images, labels],
@@ -75,10 +79,8 @@ def input_pipeline(filename, batch_size, num_labels,
                                                 shuffle=True)
 
     # Reads the actual images from                                                 
-    image, label = read_images_from_disk(input_queue,num_labels=num_labels)
-    pr_image = processing_image(image)
-    pr_label = processing_label(label)
-
+    image, label = read_images_from_disk(input_queue, num_labels=num_labels)
+    pr_image, pr_label = processing_image(image, label)
 
     image_batch, label_batch = tf.train.batch([pr_image, pr_label],
                                               batch_size=batch_size)
@@ -89,53 +91,55 @@ def input_pipeline(filename, batch_size, num_labels,
     return image_batch, label_batch
 
 
-def inputs(H, eval_data, data_dir, num_labels=2,num_epochs=None):
+def inputs(eval_data, data_dir, batch_size, num_labels=2,num_epochs=None):
 
   if hasattr(params, 'data_dir'):
-    data_dir = H['data']['data_dir']
+    data_dir = params.data_dir
 
   if(eval_data):
-    filename=os.path.join(data_dir, H['data']['val_file'])
+    filename=os.path.join(data_dir, params.val_file)
   else:
-    filename=os.path.join(data_dir, H['data']['train_file'])
+    filename=os.path.join(data_dir, params.train_file)
 
   def pr_image(image):
 
-    resized_image = tf.image.resize_images(image, H['arch']['image_size'],
-                                           H['arch']['image_size'], method=0)    
+    resized_image = tf.image.resize_images(image, params.image_size,
+                                           params.image_size, method=0)    
     cropped_image = tf.image.resize_image_with_crop_or_pad(resized_image,
-                                                           H['arch']['input_size'],
-                                                           H['arch']['input_size'])
+                                                           params.input_size,
+                                                           params.input_size)
 
-    cropped_image.set_shape([H['arch']['input_size'],
-                             H['arch']['input_size'],
-                             H['arch']['num_channels']])
+    cropped_image.set_shape([params.input_size,
+                             params.input_size,
+                             params.num_channels])
 
     return tf.image.per_image_whitening(cropped_image)
 
-  return input_pipeline(filename, H['solver']['batch_size'] ,num_labels, processing_image=pr_image
+  return input_pipeline(filename, batch_size,num_labels, processing_image=pr_image
                         ,num_epochs=None)
 
-def distorted_inputs(H, data_dir, num_labels=2, num_epochs=None):
+def distorted_inputs(data_dir, batch_size, num_labels=2, num_epochs=None):
+   """ Function creates input for training. It uses input the input pipeline and 
+   """
 
   if hasattr(params, 'data_dir'):
-    data_dir = H['data']['data_dir']
+    data_dir = params.data_dir
 
   filename=os.path.join(data_dir, "train.txt")
 
   def pr_image(image):
 
-    reshaped_image = random_resize(image, H['arch']['min_scale'],
-                                   H['arch']['max_scale'])
+    reshaped_image = random_resize(image, params.min_scale,
+                                   params.max_scale)
 
     # Randomly crop a [height, width] section of the image.
     distorted_image = tf.random_crop(reshaped_image,
-                                     [H['arch']['input_size'], H['arch']['input_size']
-                                     ,H['arch']['num_channels']])
+                                     [params.input_size, params.input_size
+                                     ,params.num_channels])
 
-    distorted_image.set_shape([H['arch']['input_size'],
-                               H['arch']['input_size'],
-                               H['arch']['num_channels']])
+    distorted_image.set_shape([params.input_size,
+                               params.input_size,
+                               params.num_channels])
 
     # Randomly flip the image horizontally.
     distorted_image = tf.image.random_flip_left_right(distorted_image)
@@ -156,7 +160,7 @@ def distorted_inputs(H, data_dir, num_labels=2, num_epochs=None):
 
     return tf.image.per_image_whitening(distorted_image)
 
-  return input_pipeline(filename, H['solver']['batch_size'] ,num_labels, processing_image=pr_image
+  return input_pipeline(filename, batch_size,num_labels, processing_image=pr_image
                         ,num_epochs=None)
 
 
@@ -203,12 +207,12 @@ def rescale_image(image):
     image: An image tensor.
 
     Returns:
-    An image tensor with size H['arch']['image_size']
+    An image tensor with size params.image_size
     """
-    resized_image = tf.image.resize_images(image, H['arch']['image_size'],
-                                           H['arch']['image_size'], method=0)
-    resized_image.set_shape([H['arch']['image_size'], H['arch']['image_size'],
-                             H['arch']['num_channels']])
+    resized_image = tf.image.resize_images(image, params.image_size,
+                                           params.image_size, method=0)
+    resized_image.set_shape([params.image_size, params.image_size,
+                             params.num_channels])
     return resized_image
     
 
@@ -235,7 +239,6 @@ def read_labeled_image_list(image_list_file):
     
     Args:
        image_list_file: a .txt file with one /path/to/image per line
-       label: optionally, if set label will be pasted after each line
       
     Returns:
        List with all filenames in file image_list_file
@@ -246,7 +249,7 @@ def read_labeled_image_list(image_list_file):
     for line in f:
         filename, label = line[:-1].split(' ')
         filenames.append(filename)
-        labels.append(int(label))
+        labels.append(label)
     return filenames, labels
         
 
@@ -282,44 +285,6 @@ def create_input_queues(image, label, capacity=100):
                                                            
     return im_queue, label_queue
     
-    
-def test_preprocc():
-    data_folder = "/fzi/ids/teichman/no_backup/DATA/"
-    data_file = "Vehicle_Data/test.txt"
-    
-    filename = os.path.join(data_folder, data_file)
-    
-    image_list, label_list = read_labeled_image_list(filename)
-
-
-    images = ops.convert_to_tensor(image_list, dtype=dtypes.string)
-    labels = ops.convert_to_tensor(label_list, dtype=dtypes.int32)
-    
-    input_queue = tf.train.slice_input_producer([images, labels],
-                                            num_epochs=None,
-                                            shuffle=True)
-                                            
-    image, label = read_images_from_disk(input_queue,num_labels=2)
-    
-    reshaped_image = random_resize(image, 32,
-                                   48)                                         
-                                           
-    init_op = tf.initialize_all_variables()
-    sess = tf.InteractiveSession()
-    sess.run(init_op)
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(sess=sess, coord=coord)  
-    reshaped_image.eval(session=sess).shape
-    
-    new_size = tf.to_int32(random_ops.random_uniform([], 32, 45))
-    rimage = tf.image.resize_images(image, new_size, new_size,
-                                    method=0)
-                                    
-    a = sess.run([new_size,rimage])
-    print(a[0])
-    a[1].shape
-    return
-    
 
     
 def test_pipeline():
@@ -349,7 +314,7 @@ def test_pipeline():
     
         sess.close()
 
-def maybe_download_and_extract(H, dest_directory):
+def maybe_download_and_extract(dest_directory):
   """Download and extract Data found in data_url."""
   return
  

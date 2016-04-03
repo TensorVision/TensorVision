@@ -9,6 +9,12 @@ import sys
 import logging
 
 
+# Global constants describing the CIFAR-10 data set.
+IMAGE_SIZE = params.image_size
+NUM_CHANNELS = params.num_channels
+IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE
+NUM_CLASSES = params.num_classes
+
 def _activation_summary(x):
   """Helper to create summaries for activations.
 
@@ -129,23 +135,22 @@ def _fc_layer_with_dropout(bottom, name, size,
 
     return fullc
 
-def _softmax(bottom, num_classes):
+def _softmax(bottom):
   # Computing Softmax
   with tf.variable_scope('logits') as scope:
     n1 = bottom.get_shape()[1].value
     stddev = (1/n1)**0.5
-    weights = _variable_with_weight_decay(shape = [n1, num_classes],
+    weights = _variable_with_weight_decay(shape = [n1, NUM_CLASSES],
                                           stddev=stddev, wd=0.0)
 
-    biases = _bias_variable([num_classes])
+    biases = _bias_variable([NUM_CLASSES])
     logits = tf.add(tf.matmul(bottom, weights),biases, name=scope.name)
     _activation_summary(logits)
 
   return logits
 
 
-
-def inference(H, images, train=True): 
+def inference(images, train=True): 
   """Build the MNIST model up to where it may be used for inference.
 
   Args:
@@ -185,12 +190,12 @@ def inference(H, images, train=True):
   fc5 = _fc_layer_with_dropout(name = 'fc5', bottom = fc4,
                                train=train, size=192)
   #Adding Softmax
-  logits = _softmax(fc5, H['arch']['num_classes'])
+  logits = _softmax(fc5)
 
   return logits
 
 
-def loss(H, logits, labels):
+def loss(logits, labels):
   """Calculates the loss from the logits and the labels.
 
   Args:
@@ -210,7 +215,7 @@ def loss(H, logits, labels):
     indices = tf.expand_dims(tf.range(0, batch_size), 1)
     concated = tf.concat(1, [indices, labels])
     onehot_labels = tf.sparse_to_dense(
-        concated, tf.pack([batch_size, H['arch']['num_classes']]), 1.0, 0.0)
+        concated, tf.pack([batch_size, params.num_classes]), 1.0, 0.0)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits,
                                                             onehot_labels,
                                                             name='xentropy')
@@ -220,7 +225,7 @@ def loss(H, logits, labels):
     loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
   return loss
 
-def evaluation(H, logits, labels):
+def evaluation(logits, labels):
   """Evaluate the quality of the logits at predicting the label.
 
   Args:

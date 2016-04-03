@@ -10,14 +10,11 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.DEBUG,
                     stream=sys.stdout)
 
-#assume to have a params.py in the same folder!
-import params
 
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
 NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
 LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
 
 def _add_loss_summaries(total_loss):
   """Add summaries for losses in CIFAR-10 model.
@@ -45,7 +42,7 @@ def _add_loss_summaries(total_loss):
 
   return loss_averages_op
 
-def training(loss, global_step=0, learning_rate=None):
+def training(H, loss, global_step):
   """Sets up the training Ops.
 
   Creates a summarizer to track the loss over time in TensorBoard.
@@ -66,11 +63,12 @@ def training(loss, global_step=0, learning_rate=None):
   """
 
   # Variables that affect learning rate.
-  num_batches_per_epoch = params.num_examples_per_epoch_for_train / params.batch_size
+  num_batches_per_epoch = H['data']['num_examples_per_epoch_for_train'] \
+                          / H['solver']['batch_size']
   decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 
   # Decay the learning rate exponentially based on the number of steps.
-  lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+  lr = tf.train.exponential_decay(H['solver']['learning_rate'],
                                   global_step,
                                   decay_steps,
                                   LEARNING_RATE_DECAY_FACTOR,

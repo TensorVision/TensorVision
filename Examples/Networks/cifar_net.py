@@ -1,16 +1,10 @@
 import tensorflow as tf
 import re
 
-import params
 import sys
 import logging
 
 
-# Global constants describing the CIFAR-10 data set.
-IMAGE_SIZE = params.image_size
-NUM_CHANNELS = params.num_channels
-IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE
-NUM_CLASSES = params.num_classes
 
 
 def _variable_with_weight_decay(name, shape, stddev, wd):
@@ -82,7 +76,7 @@ def _activation_summary(x):
   tf.histogram_summary(tensor_name + '/activations', x)
   tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
-def inference(images, train=True): 
+def inference(H, images, train=True): 
   """Build the MNIST model up to where it may be used for inference.
 
   Args:
@@ -99,12 +93,13 @@ def inference(images, train=True):
   # First Convolutional Layer
   with tf.variable_scope('Conv1') as scope:
     W_conv1 = _variable_with_weight_decay('weights',
-                                          shape=[5, 5, NUM_CHANNELS,
+                                          shape=[5, 5, H['arch']['num_channels'],
                                                  num_filter_1],
                                          stddev=1e-4, wd=0.0)
     b_conv1 = bias_variable('biases', [num_filter_1], constant=0.0)
 
-    x_image = tf.reshape(images, [-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS])
+    x_image = tf.reshape(images, [-1, H['arch']['image_size'], H['arch']['image_size'],
+                         H['arch']['num_channels']])
 
     h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1, name=scope.name)
     _activation_summary(h_conv1)
@@ -136,7 +131,7 @@ def inference(images, train=True):
     dim = 1
     for d in norm2.get_shape()[1:].as_list():
       dim *= d
-    reshape = tf.reshape(norm2, [params.batch_size, dim])
+    reshape = tf.reshape(norm2, [-1, dim])
 
     weights = _variable_with_weight_decay('weights', shape=[dim, 384],
                                           stddev=0.04, wd=0.004)
@@ -156,16 +151,16 @@ def inference(images, train=True):
 
   # Computing Softmax
   with tf.variable_scope('logits') as scope:
-    W_fc2 = _variable_with_weight_decay('weights', [192, NUM_CLASSES],
+    W_fc2 = _variable_with_weight_decay('weights', [192, H['arch']['num_classes']],
                                         stddev=1/192.0, wd=0.0)
-    b_fc2 = bias_variable('biases', [NUM_CLASSES])
+    b_fc2 = bias_variable('biases', [H['arch']['num_classes']])
     logits = tf.add(tf.matmul(fullc2, W_fc2),b_fc2, name=scope.name)
     _activation_summary(logits)
 
   return logits
 
 
-def loss(logits, labels):
+def loss(H, logits, labels):
   """Calculates the loss from the logits and the labels.
 
   Args:
@@ -185,7 +180,7 @@ def loss(logits, labels):
     indices = tf.expand_dims(tf.range(0, batch_size), 1)
     concated = tf.concat(1, [indices, labels])
     onehot_labels = tf.sparse_to_dense(
-        concated, tf.pack([batch_size, params.num_classes]), 1.0, 0.0)
+        concated, tf.pack([batch_size, H['arch']['num_classes']]), 1.0, 0.0)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits,
                                                             onehot_labels,
                                                             name='xentropy')
@@ -195,13 +190,13 @@ def loss(logits, labels):
     loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
   return loss
 
-def evaluation(logits, labels):
+def evaluation(H, logits, labels):
   """Evaluate the quality of the logits at predicting the label.
 
   Args:
-    logits: Logits tensor, float - [batch_size, NUM_CLASSES].
+    logits: Logits tensor, float - [batch_size, H['arch']['num_classes']].
     labels: Labels tensor, int32 - [batch_size], with values in the
-      range [0, NUM_CLASSES).
+      range [0, H['arch']['num_classes']).
 
   Returns:
     A scalar int32 tensor with the number of examples (out of batch_size)

@@ -92,7 +92,7 @@ def fill_feed_dict(kb, train):
 def do_eval(sess,
             eval_correct,
             num_examples,
-            params,
+            H,
             name):
   """Runs one evaluation against the full epoch of data.
 
@@ -100,14 +100,14 @@ def do_eval(sess,
     sess: The session in which the model has been trained.
     eval_correct: The Tensor that returns the number of correct predictions.
     num_examples: Amount of examples to use in eval
-    params: class containing relevant parameters
+    H: hypes
     name: string descriping the data the evaluation is run on
   """
   # And run one epoch of eval.
 
   true_count = 0  # Counts the number of correct predictions.
-  steps_per_epoch =  num_examples // params.batch_size
-  num_examples = steps_per_epoch * params.batch_size
+  steps_per_epoch =  num_examples // H['solver']['batch_size']
+  num_examples = steps_per_epoch * H['solver']['batch_size']
 
   #run evaluation on num_examples many images
   for step in xrange(steps_per_epoch):

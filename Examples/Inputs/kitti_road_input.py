@@ -31,8 +31,6 @@ from tensorflow.python.framework import ops
 from tensorflow.python.framework import dtypes
 from tensorflow.python.training import queue_runner
 
-import params
-
 # Global constents descriping data set
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
@@ -88,7 +86,7 @@ def input_pipeline(filename, batch_size, num_labels,
     return image_batch, label_batch
 
 
-def inputs(eval_data, data_dir, batch_size, num_labels=2,num_epochs=None):
+def inputs(H, eval_data, data_dir, num_labels=2,num_epochs=None):
 
   if(eval_data):
     filename=os.path.join(data_dir, "test.txt")
@@ -98,10 +96,10 @@ def inputs(eval_data, data_dir, batch_size, num_labels=2,num_epochs=None):
   def pr_image(image):
     return tf.image.per_image_whitening(image)
 
-  return input_pipeline(filename, batch_size,num_labels, processing_image=pr_image
+  return input_pipeline(filename, H['solver']['batch_size'],num_labels, processing_image=pr_image
                         ,num_epochs=None)
 
-def distorted_inputs(data_dir, batch_size, num_labels=2, num_epochs=None):
+def distorted_inputs(H, data_dir,  num_labels=2, num_epochs=None):
 
   filename=os.path.join(data_dir, "train.txt")
 
@@ -119,7 +117,7 @@ def distorted_inputs(data_dir, batch_size, num_labels=2, num_epochs=None):
 
     return tf.image.per_image_whitening(distorted_image)
 
-  return input_pipeline(filename, batch_size,num_labels, processing_image=pr_image
+  return input_pipeline(filename, H['solver']['batch_size'] ,num_labels, processing_image=pr_image
                         ,num_epochs=None)
 
         
@@ -143,9 +141,9 @@ def read_images_from_disk(input_queue, num_labels):
   
   
 def preprocessing(image):
-    resized_image = tf.image.resize_images(image, params.image_size,
-                                           params.image_size, method=0)
-    resized_image.set_shape([params.image_size,params.image_size,3])
+    resized_image = tf.image.resize_images(image, H['arch']['image_size'],
+                                           H['arch']['image_size'], method=0)
+    resized_image.set_shape([H['arch']['image_size'],H['arch']['image_size'],3])
     return resized_image
     
 
@@ -288,18 +286,18 @@ def test_pipeline():
     
         sess.close()
 
-def maybe_download_and_extract(dest_directory):
+def maybe_download_and_extract(H, dest_directory):
   """Download and extract the tarball from Alex's website."""
   if not os.path.exists(dest_directory):
     os.makedirs(dest_directory)
-  filename = params.data_url.split('/')[-1]
+  filename = H['data']['data_url'].split('/')[-1]
   filepath = os.path.join(dest_directory, filename)
   if not os.path.exists(filepath):
     def _progress(count, block_size, total_size):
       sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename,
           float(count * block_size) / float(total_size) * 100.0))
       sys.stdout.flush()
-    filepath, _ = urllib.request.urlretrieve(params.data_url, filepath,
+    filepath, _ = urllib.request.urlretrieve(H['data']['data_url'], filepath,
                                              reporthook=_progress)
     print()
     statinfo = os.stat(filepath)
@@ -330,6 +328,8 @@ def process_data(dest_directory):
   train_file = open(train_file_name, "w")
   test_file = open(test_file_name, "w")
 
+  H['arch']['num_pixels'] = H['arch']['image_size']*H['arch']['image_size']
+
   for i, image_file in enumerate(names):
 
     # Copy Names of Images
@@ -345,25 +345,25 @@ def process_data(dest_directory):
     mygt = 255!=np.sum(gt, axis=2)
 
     skip = 0      
-    for x in range(mygt.shape[0]-params.image_size, 0 , -params.stride):
-      for y in range(0, mygt.shape[1]-params.image_size, params.stride):
+    for x in range(mygt.shape[0]-H['arch']['image_size'], 0 , -H['arch']['stride']):
+      for y in range(0, mygt.shape[1]-H['arch']['image_size'], H['arch']['stride']):
           if (skip>0):
             skip = skip-1
             continue
-          if(np.sum(mygt[x:(x+params.image_size),y:(y+params.image_size)])==0):
+          if(np.sum(mygt[x:(x+H['arch']['image_size']),y:(y+H['arch']['image_size'])])==0):
               file_name = "%s_%i_%i.png" % (image_file.split('.')[0], x, y)
               save_file = os.path.join(bg_snippets, file_name)
-              scp.misc.imsave(save_file, data[x:(x+params.image_size),y:(y+params.image_size)])
+              scp.misc.imsave(save_file, data[x:(x+H['arch']['image_size']),y:(y+H['arch']['image_size'])])
               skip = skip + 2
               if i < 200:
                 train_file.write(save_file + " 0" + "\n")
               else:
                 test_file.write(save_file + " 0" + "\n")
-          elif(np.sum(mygt[x:(x+params.image_size),y:(y+params.image_size)]) >
-               0.8*params.num_pixels):
+          elif(np.sum(mygt[x:(x+H['arch']['image_size']),y:(y+H['arch']['image_size'])]) >
+               0.8*H['arch']['num_pixels']):
               file_name = "%s_%i_%i.png" % (image_file.split('.')[0], x, y)
               save_file = os.path.join(road_snippets, file_name)
-              scp.misc.imsave(save_file, data[x:(x+params.image_size),y:(y+params.image_size)])
+              scp.misc.imsave(save_file, data[x:(x+H['arch']['image_size']),y:(y+H['arch']['image_size'])])
               if i < 200:
                 train_file.write(save_file + " 1" + "\n")
               else:

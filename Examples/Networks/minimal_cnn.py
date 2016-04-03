@@ -1,14 +1,7 @@
 import tensorflow as tf
 import re
 
-import params
-
 import logging
-
-IMAGE_SIZE = params.image_size
-NUM_CHANNELS = params.num_channels
-IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE
-NUM_CLASSES = params.num_classes
 
 def weight_variable(name, shape, stddev=0.1):
   initializer = tf.truncated_normal_initializer(stddev=stddev)
@@ -44,7 +37,7 @@ def _activation_summary(x):
   tf.histogram_summary(tensor_name + '/activations', x)
   tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
-def inference(images, train=True): 
+def inference(H, images, train=True): 
   """Build the MNIST model up to where it may be used for inference.
 
   Args:
@@ -60,7 +53,7 @@ def inference(images, train=True):
   # First Convolutional Layer
   with tf.variable_scope('Conv1') as scope:
     # Adding Convolutional Layers                        
-    W_conv1 = weight_variable('weights', [5, 5, NUM_CHANNELS, num_filter_1])
+    W_conv1 = weight_variable('weights', [5, 5, H['arch']['num_channels'], num_filter_1])
     b_conv1 = bias_variable('biases', [num_filter_1])
     
     h_conv1 = tf.nn.relu(conv2d(images, W_conv1) + b_conv1, name=scope.name)
@@ -101,19 +94,19 @@ def inference(images, train=True):
     h_fc1 = tf.nn.dropout(h_fc1, 0.5, name='dropout')
 
   with tf.variable_scope('logits') as scope:
-    W_fc2 = weight_variable('weights', [1024, NUM_CLASSES])
-    b_fc2 = bias_variable('biases', [NUM_CLASSES])
+    W_fc2 = weight_variable('weights', [1024, H['arch']['num_classes']])
+    b_fc2 = bias_variable('biases', [H['arch']['num_classes']])
     logits = tf.add(tf.matmul(h_fc1, W_fc2), b_fc2, name=scope.name)
     _activation_summary(logits)
 
   return logits
 
 
-def loss(logits, labels):
+def loss(H, logits, labels):
   """Calculates the loss from the logits and the labels.
 
   Args:
-    logits: Logits tensor, float - [batch_size, NUM_CLASSES].
+    logits: Logits tensor, float - [batch_size, H['arch']['num_classes']].
     labels: Labels tensor, int32 - [batch_size].
 
   Returns:
@@ -129,7 +122,7 @@ def loss(logits, labels):
     indices = tf.expand_dims(tf.range(0, batch_size), 1)
     concated = tf.concat(1, [indices, labels])
     onehot_labels = tf.sparse_to_dense(
-        concated, tf.pack([batch_size, NUM_CLASSES]), 1.0, 0.0)
+        concated, tf.pack([batch_size, H['arch']['num_classes']]), 1.0, 0.0)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits,
                                                             onehot_labels,
                                                             name='xentropy')
@@ -138,13 +131,13 @@ def loss(logits, labels):
 
 
 
-def evaluation(logits, labels):
+def evaluation(H, logits, labels):
   """Evaluate the quality of the logits at predicting the label.
 
   Args:
-    logits: Logits tensor, float - [batch_size, NUM_CLASSES].
+    logits: Logits tensor, float - [batch_size, H['arch']['num_classes']].
     labels: Labels tensor, int32 - [batch_size], with values in the
-      range [0, NUM_CLASSES).
+      range [0, H['arch']['num_classes']).
 
   Returns:
     A scalar int32 tensor with the number of examples (out of batch_size)
@@ -158,12 +151,3 @@ def evaluation(logits, labels):
     correct = tf.nn.in_top_k(logits, labels, 1)
     # Return the number of true entries.
     return tf.reduce_sum(tf.cast(correct, tf.int32))                  
-
-
-
-
-
-
-
-
-

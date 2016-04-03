@@ -6,7 +6,7 @@ import logging
 import sys
 import tensorflow as tf
 
-def training(loss, global_step=0, learning_rate=None):
+def training(H, loss, global_step):
   """Sets up the training Ops.
 
   Creates a summarizer to track the loss over time in TensorBoard.
@@ -29,7 +29,7 @@ def training(loss, global_step=0, learning_rate=None):
   with tf.name_scope('train'):
     tf.scalar_summary(loss.op.name, loss)
     # Create the gradient descent optimizer with the given learning rate.
-    optimizer = tf.train.AdamOptimizer(1e-4)
+    optimizer = tf.train.AdamOptimizer(H['solver']['learning_rate'])
     # optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     # Create a variable to track the global step.
     global_step = tf.Variable(0, name='global_step', trainable=False)

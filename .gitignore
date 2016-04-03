@@ -1,5 +1,7 @@
 Models/*
 
+.idea/
+
 # mnist stuff
 output
 .nfs*

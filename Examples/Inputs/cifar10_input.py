@@ -35,8 +35,6 @@ from six.moves import urllib
 
 from tensorflow.python.platform import gfile
 
-import params
-
 
 
 def read_cifar10(filename_queue):
@@ -132,16 +130,15 @@ def _generate_image_and_label_batch(image, label, min_queue_examples,
   return images, tf.reshape(label_batch, [batch_size])
 
 
-def distorted_inputs(data_dir, batch_size):
+def distorted_inputs(H, data_dir):
   """Construct distorted input for CIFAR training using the Reader ops.
 
   Args:
     data_dir: Path to the CIFAR-10 data directory.
-    batch_size: Number of images per batch.
 
   Returns:
-    images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
-    labels: Labels. 1D tensor of [batch_size] size.
+    images: Images. 4D tensor of [H['solver']['batch_size'], IMAGE_SIZE, IMAGE_SIZE, 3] size.
+    labels: Labels. 1D tensor of [H['solver']['batch_size']] size.
   """
   data_dir = os.path.join(data_dir, "cifar-10-batches-bin")
   filenames = [os.path.join(data_dir, 'data_batch_%d.bin' % i)
@@ -157,15 +154,15 @@ def distorted_inputs(data_dir, batch_size):
   read_input = read_cifar10(filename_queue)
   reshaped_image = tf.cast(read_input.uint8image, tf.float32)
 
-  height = params.image_size
-  width = params.image_size
+  height = H['arch']['image_size']
+  width = H['arch']['image_size']
 
   # Image processing for training the network. Note the many random
   # distortions applied to the image.
 
   # Randomly crop a [height, width] section of the image.
   distorted_image = tf.random_crop(reshaped_image,
-                                   [height, width, params.num_channels])
+                                   [height, width, H['arch']['num_channels']])
 
   # Randomly flip the image horizontally.
   distorted_image = tf.image.random_flip_left_right(distorted_image)
@@ -182,36 +179,35 @@ def distorted_inputs(data_dir, batch_size):
 
   # Ensure that the random shuffling has good mixing properties.
   min_fraction_of_examples_in_queue = 0.1
-  min_queue_examples = int(params.num_examples_per_epoch_for_train *
+  min_queue_examples = int(H['data']['num_examples_per_epoch_for_train'] *
                            min_fraction_of_examples_in_queue)
   print ('Filling queue with %d CIFAR images before starting to train. '
          'This will take a few minutes.' % min_queue_examples)
 
   # Generate a batch of images and labels by building up a queue of examples.
   return _generate_image_and_label_batch(float_image, read_input.label,
-                                         min_queue_examples, batch_size)
+                                         min_queue_examples, H['solver']['batch_size'])
 
 
-def inputs(eval_data, data_dir, batch_size):
+def inputs(H, eval_data, data_dir):
   """Construct input for CIFAR evaluation using the Reader ops.
 
   Args:
     eval_data: bool, indicating if one should use the train or eval data set.
     data_dir: Path to the CIFAR-10 data directory.
-    batch_size: Number of images per batch.
 
   Returns:
-    images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
-    labels: Labels. 1D tensor of [batch_size] size.
+    images: Images. 4D tensor of [H['solver']['batch_size'], IMAGE_SIZE, IMAGE_SIZE, 3] size.
+    labels: Labels. 1D tensor of [H['solver']['batch_size']] size.
   """
   data_dir = os.path.join(data_dir, "cifar-10-batches-bin")
   if not eval_data:
     filenames = [os.path.join(data_dir, 'data_batch_%d.bin' % i)
                  for i in xrange(1, 6)]
-    num_examples_per_epoch = params.num_examples_per_epoch_for_train
+    num_examples_per_epoch = H['data']['num_examples_per_epoch_for_train']
   else:
     filenames = [os.path.join(data_dir, 'test_batch.bin')]
-    num_examples_per_epoch = params.num_examples_per_epoch_for_eval
+    num_examples_per_epoch = H['data']['num_examples_per_epoch_for_eval']
 
   for f in filenames:
     if not gfile.Exists(f):
@@ -224,8 +220,8 @@ def inputs(eval_data, data_dir, batch_size):
   read_input = read_cifar10(filename_queue)
   reshaped_image = tf.cast(read_input.uint8image, tf.float32)
 
-  height = params.image_size
-  width = params.image_size
+  height = H['arch']['image_size']
+  width = H['arch']['image_size']
 
   # Image processing for evaluation.
   # Crop the central [height, width] of the image.
@@ -242,21 +238,21 @@ def inputs(eval_data, data_dir, batch_size):
 
   # Generate a batch of images and labels by building up a queue of examples.
   return _generate_image_and_label_batch(float_image, read_input.label,
-                                         min_queue_examples, batch_size)
+                                         min_queue_examples, H['solver']['batch_size'])
 
-def maybe_download_and_extract(data_dir):
+def maybe_download_and_extract(H, data_dir):
   """Download and extract the tarball from Alex's website."""
   dest_directory = data_dir
   if not os.path.exists(dest_directory):
     os.makedirs(dest_directory)
-  filename = params.data_url.split('/')[-1]
+  filename = H['data']['data_url'].split('/')[-1]
   filepath = os.path.join(dest_directory, filename)
   if not os.path.exists(filepath):
     def _progress(count, block_size, total_size):
       sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename,
           float(count * block_size) / float(total_size) * 100.0))
       sys.stdout.flush()
-    filepath, _ = urllib.request.urlretrieve(params.data_url, filepath,
+    filepath, _ = urllib.request.urlretrieve(H['data']['data_url'], filepath,
                                              reporthook=_progress)
     print()
     statinfo = os.stat(filepath)

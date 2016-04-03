@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import json
 import os.path
 import time
 import logging
@@ -42,13 +43,14 @@ def _copy_parameters_to_traindir(input_file, target_name, target_dir):
   copyfile(input_file, target_file)
     
     
-def initialize_training_folder(train_dir):
+def initialize_training_folder(H, train_dir):
   """Creating the training folder and copy all model files into it.
 
   The model will be executed from the training folder and all
   outputs will be saved there.
 
   Args:
+    H: hypes
     train_dir: The training folder
   """
 
@@ -69,17 +71,16 @@ def initialize_training_folder(train_dir):
 
 
   config_file = tf.app.flags.FLAGS.config
-  params = imp.load_source("params", config_file)  
-  _copy_parameters_to_traindir(config_file, "params.py", target_dir)
-  _copy_parameters_to_traindir(params.input_file, "input.py", target_dir)
-  _copy_parameters_to_traindir(params.network_file, "network.py", target_dir)
-  _copy_parameters_to_traindir(params.opt_file, "optimizer.py", target_dir)
+  _copy_parameters_to_traindir(config_file, "hypes.json", target_dir)
+  _copy_parameters_to_traindir(H['model']['input_file'], "data_input.py", target_dir)
+  _copy_parameters_to_traindir(H['model']['arch_file'], "architecture.py", target_dir)
+  _copy_parameters_to_traindir(H['model']['solver_file'], "solver.py", target_dir)
 
 
-def maybe_download_and_extract(train_dir):
+def maybe_download_and_extract(H, train_dir):
   target_dir = os.path.join(train_dir, "model_files")  
-  data_input = imp.load_source("input", os.path.join(target_dir, "input.py"))
-  data_input.maybe_download_and_extract(utils.cfg.data_dir)
+  data_input = imp.load_source("input",  H['model']['input_file'])
+  data_input.maybe_download_and_extract(H, utils.cfg.data_dir)
 
 
 def write_precision_to_summary(precision, summary_writer, name, global_step, sess):
@@ -91,69 +92,63 @@ def write_precision_to_summary(precision, summary_writer, name, global_step, ses
   summary_writer.add_summary(summary, global_step)
 
 
-def run_training(train_dir):
+def run_training(H, train_dir):
   """Train model for a number of steps."""
   # Get the sets of images and labels for training, validation, and
   # test on MNIST.
 
   # Tell TensorFlow that the model will be built into the default Graph.
-
-
   target_dir = os.path.join(train_dir, "model_files")  
-  data_input = imp.load_source("input", os.path.join(target_dir, "input.py"))
-  network = imp.load_source("network", os.path.join(target_dir, "network.py"))
-  opt = imp.load_source("objective", os.path.join(target_dir, "optimizer.py"))
-  params = imp.load_source("params", os.path.join(target_dir, "params.py"))
+  data_input = imp.load_source("input", H['model']['input_file'])
+  arch = imp.load_source("arch", H['model']['arch_file'])
+  solver = imp.load_source("solver", H['model']['solver_file'])
 
   with tf.Graph().as_default():
 
     global_step = tf.Variable(0.0, trainable=False)
 
-    with tf.name_scope('Input'):
-      image_batch, label_batch = data_input.distorted_inputs(utils.cfg.data_dir,
-                                                             params.batch_size)
+    #TODO: fix/train-val
 
-    # Build a Graph that computes predictions from the inference network.
-    logits = network.inference(image_batch, train=True)
+    with tf.name_scope('Input'):
+      image_batch, label_batch = data_input.distorted_inputs(H, utils.cfg.data_dir)
+
+    # Build a Graph that computes predictions from the inference arch.
+    logits = arch.inference(H, image_batch, train=True)
 
     # Build Graph for Validation. This Graph shares Variabels with
     # the training Graph
     with tf.name_scope('Validation'):
       with tf.name_scope('Input_train_data'):
-        image_batch_val, label_batch_val = data_input.distorted_inputs(
-                                                               utils.cfg.data_dir,
-                                                               params.batch_size)
+        image_batch_val, label_batch_val = data_input.distorted_inputs(H,
+                                                               utils.cfg.data_dir)
       with tf.name_scope('Input_val_data'):  
-        image_batch_train, label_batch_train = data_input.inputs(False,
-                                                               utils.cfg.data_dir,
-                                                               params.batch_size)
+        image_batch_train, label_batch_train = data_input.inputs(H, False,
+                                                               utils.cfg.data_dir)
       with tf.name_scope('Input_test_data'):  
-        image_batch_test, label_batch_test = data_input.inputs(True,
-                                                               utils.cfg.data_dir,
-                                                               params.batch_size)
+        image_batch_test, label_batch_test = data_input.inputs(H, True,
+                                                               utils.cfg.data_dir)
 
       #activate the reuse of Variabels  
       tf.get_variable_scope().reuse_variables()
 
-      #Build Networks for Validation and Evaluation Data
-      logits_train = network.inference(image_batch_train, train=False)
-      logits_val = network.inference(image_batch_val, train=False)
-      logits_test = network.inference(image_batch_test, train=False)
+      #Build arch for Validation and Evaluation Data
+      logits_train = arch.inference(H, image_batch_train, train=False)
+      logits_val = arch.inference(H, image_batch_val, train=False)
+      logits_test = arch.inference(H, image_batch_test, train=False)
     
 
 
     # Add to the Graph the Ops for loss calculation.
-    loss = network.loss(logits, label_batch)
+    loss = arch.loss(H, logits, label_batch)
 
     # Add to the Graph the Ops that calculate and apply gradients.
-    train_op = opt.training(loss, global_step=global_step,
-                            learning_rate=params.learning_rate)
+    train_op = solver.training(H, loss, global_step=global_step)
 
     # Add the Op to compare the logits to the labels during evaluation.
-    eval_train = network.evaluation(logits_train, label_batch_train)
-    eval_val = network.evaluation(logits_val, label_batch_val)
-    eval_test = network.evaluation(logits_test, label_batch_test)
-    eval_correct = network.evaluation(logits, label_batch)
+    eval_train = arch.evaluation(H, logits_train, label_batch_train)
+    eval_val = arch.evaluation(H, logits_val, label_batch_val)
+    eval_test = arch.evaluation(H, logits_test, label_batch_test)
+    eval_correct = arch.evaluation(H, logits, label_batch)
 
     # Build the summary operation based on the TF collection of Summaries.
     summary_op = tf.merge_all_summaries()
@@ -176,7 +171,7 @@ def run_training(train_dir):
                                             graph_def=sess.graph_def)
 
     # And then after everything is built, start the training loop.
-    for step in xrange(params.max_steps):
+    for step in xrange(H['solver']['max_steps']):
       start_time = time.time()
 
       # Run one step of the model.  The return values are the activations
@@ -190,7 +185,7 @@ def run_training(train_dir):
       if step % 100 == 0:
         # Print status to stdout.
         duration = time.time() - start_time
-        examples_per_sec = params.batch_size / duration
+        examples_per_sec = H['solver']['batch_size'] / duration
         sec_per_batch = float(duration)
         logging.info('Step %d: loss = %.2f ( %.3f sec (per Batch); %.1f examples/sec;)'
                                      % (step, loss_value,
@@ -200,17 +195,17 @@ def run_training(train_dir):
         summary_writer.add_summary(summary_str, step)
 
       # Save a checkpoint and evaluate the model periodically.
-      if (step+1) % 1000 == 0 or (step + 1) == params.max_steps:
+      if (step+1) % 1000 == 0 or (step + 1) == H['solver']['max_steps']:
         checkpoint_path = os.path.join(train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path , global_step=step)
         # Evaluate against the training set.
 
-      if (step+1) % 1000 == 0 or (step + 1) == params.max_steps:                                   
+      if (step+1) % 1000 == 0 or (step + 1) == H['solver']['max_steps']:                                   
         logging.info('Doing Evaluate with whole epoche of Training Data:')
         precision= utils.do_eval(sess,
                                  eval_train,
-                                 params.num_examples_per_epoch_for_train,
-                                 params,
+                                 H['data']['num_examples_per_epoch_for_train'],
+                                 H,
                                  name="Train")
         write_precision_to_summary(precision, summary_writer,"Train" , step, sess)
     
@@ -218,16 +213,16 @@ def run_training(train_dir):
         #TODO: Analyse Validation Error.
         #precision= utils.do_eval(sess,
         #                         eval_val,
-        #                         params.num_examples_per_epoch_for_train,
-        #                         params,
+        #                         H.num_examples_per_epoch_for_train,
+        #                         H,
         #                         name="Val")
         #write_precision_to_summary(precision, summary_writer,"Val" , step, sess)
 
         logging.info('Doing Evaluation with Testing Data')
         precision= utils.do_eval(sess,
                                  eval_test,
-                                 params.num_examples_per_epoch_for_eval,
-                                 params,
+                                 H['data']['num_examples_per_epoch_for_eval'],
+                                 H,
                                  name="Test")
         write_precision_to_summary(precision, summary_writer,"Test" , step, sess)
 
@@ -237,10 +232,14 @@ def main(_):
     logging.info("Training on default config.")
     logging.info("Use training.py --config=your_config.py to train different models")
 
+  with open(tf.app.flags.FLAGS.config, 'r') as f:
+    logging.info("f: %s",f)
+    H = json.load(f)
+
   train_dir = utils.get_train_dir()
-  initialize_training_folder(train_dir)
-  maybe_download_and_extract(train_dir)
-  run_training(train_dir)
+  initialize_training_folder(H, train_dir)
+  maybe_download_and_extract(H, train_dir)
+  run_training(H, train_dir)
 
 
 
