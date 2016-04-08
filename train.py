@@ -105,7 +105,7 @@ def do_eval(hypes, eval_correct, phase, sess):
 
     if phase == 'train':
         num_examples = hypes['solver']['num_examples_per_epoch_for_train']
-    if phase == 'test':
+    if phase == 'val':
         num_examples = hypes['solver']['num_examples_per_epoch_for_eval']
 
     true_count = 0  # Counts the number of correct predictions.
@@ -141,23 +141,19 @@ def run_training(hypes, train_dir):
 
         global_step = tf.Variable(0.0, trainable=False)
 
+        q, logits = {}, {}
+        image_batch, label_batch = {}, {}
+        eval_correct = {}
+
+        # Add Input Producers to the Graph
         with tf.name_scope('Input'):
             placeholders = data_input.placeholders(hypes)
-            q = {}
-            image_batch, label_batch = {}, {}
-            for phase in ['train', 'test']:
-                q[phase] = data_input.create_queues(hypes, phase)
-                input_batch = data_input.inputs(hypes, q, phase,
-                                                utils.cfg.data_dir)
-                image_batch[phase], label_batch[phase] = input_batch
+            q['train'] = data_input.create_queues(hypes, 'train')
+            input_batch = data_input.inputs(hypes, q, 'train',
+                                            utils.cfg.data_dir)
+            image_batch['train'], label_batch['train'] = input_batch
 
-        logits = {}
-        for phase in ['train', 'test']:
-            if(phase == 'test'):
-                # activate the reuse of Variabels
-                tf.get_variable_scope().reuse_variables()
-            # Build a Graph that computes predictions from the inference arch.
-            logits[phase] = arch.inference(hypes, image_batch[phase], phase)
+        logits['train'] = arch.inference(hypes, image_batch['train'], 'train')
 
         # Add to the Graph the Ops for loss calculation.
         loss = arch.loss(hypes, logits['train'], label_batch['train'])
@@ -166,10 +162,20 @@ def run_training(hypes, train_dir):
         train_op = solver.training(hypes, loss, global_step=global_step)
 
         # Add the Op to compare the logits to the labels during evaluation.
-        eval_correct = {}
-        for phase in ['train', 'test']:
-            eval_correct[phase] = arch.evaluation(hypes, logits[phase],
-                                                  label_batch[phase])
+        eval_correct['train'] = arch.evaluation(hypes, logits['train'],
+                                                label_batch['train'])
+
+        # Validation Cycle to the Graph
+        with tf.variable_scope('Validation') as scope:
+            q['val'] = data_input.create_queues(hypes, 'val')
+            input_batch = data_input.inputs(hypes, q, 'val',
+                                            utils.cfg.data_dir)
+            image_batch['val'], label_batch['val'] = input_batch
+
+            logits['val'] = arch.inference(hypes, image_batch['val'], 'val')
+
+            eval_correct['val'] = arch.evaluation(hypes, logits['val'],
+                                                  label_batch['val'])
 
         # Build the summary operation based on the TF collection of Summaries.
         summary_op = tf.merge_all_summaries()
