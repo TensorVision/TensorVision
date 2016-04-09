@@ -54,7 +54,7 @@ setup(
                  ],
     keywords="",
     author="Marvin Teichman, Martin Thoma",
-    author_email="marxxx, info@martin-thoma.de",
+    author_email="marvin.teichmann@googlemail.com, info@martin-thoma.de",
     url="https://github.com/MarvinTeichmann/TensorVision",
     license="MIT",
     packages=find_packages(),
