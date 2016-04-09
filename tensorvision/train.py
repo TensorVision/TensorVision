@@ -166,11 +166,13 @@ def run_training(hypes, train_dir):
                                                 label_batch['train'])
 
         # Validation Cycle to the Graph
-        with tf.variable_scope('Validation') as scope:
+        with tf.name_scope('Validation') as scope:
             q['val'] = data_input.create_queues(hypes, 'val')
             input_batch = data_input.inputs(hypes, q, 'val',
                                             utils.cfg.data_dir)
             image_batch['val'], label_batch['val'] = input_batch
+
+            tf.get_variable_scope().reuse_variables()
 
             logits['val'] = arch.inference(hypes, image_batch['val'], 'val')
 
@@ -209,6 +211,7 @@ def run_training(hypes, train_dir):
 
             # Run one step of the model.  The return values are the activations
             # from the `train_op` (which is discarded) and the `loss` Op.
+
             _, loss_value = sess.run([train_op, loss])
 
             # Write the summaries and print an overview fairly often.
@@ -226,13 +229,13 @@ def run_training(hypes, train_dir):
                 start_time = time.time()
 
             # Save a checkpoint and evaluate the model periodically.
-            if (step+1) % 400 == 0 or (step + 1) == solver['max_steps']:
+            if (step+1) % 1000 == 0 or (step + 1) == solver['max_steps']:
                 checkpoint_path = os.path.join(train_dir, 'model.ckpt')
                 saver.save(sess, checkpoint_path, global_step=step)
                 start_time = time.time()
                 # Evaluate against the training set.
 
-            if (step+1) % 400 == 0 or (step + 1) == solver['max_steps']:
+            if (step+1) % 1000 == 0 or (step + 1) == solver['max_steps']:
 
                 logging.info('Doing Evaluate with Training Data.')
 
