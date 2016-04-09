@@ -77,9 +77,10 @@ def initialize_training_folder(hypes, train_dir):
 
 
 def maybe_download_and_extract(hypes, train_dir):
-    target_dir = os.path.join(train_dir, "model_files")
     data_input = imp.load_source("input", hypes['model']['input_file'])
-    data_input.maybe_download_and_extract(hypes, utils.cfg.data_dir)
+    if hasattr(data_input, 'maybe_download_and_extract'):
+        target_dir = os.path.join(train_dir, "model_files")
+        data_input.maybe_download_and_extract(hypes, utils.cfg.data_dir)
 
 
 def write_precision_to_summary(precision, summary_writer, name, global_step,
@@ -147,7 +148,6 @@ def run_training(hypes, train_dir):
 
         # Add Input Producers to the Graph
         with tf.name_scope('Input'):
-            placeholders = data_input.placeholders(hypes)
             q['train'] = data_input.create_queues(hypes, 'train')
             input_batch = data_input.inputs(hypes, q, 'train',
                                             utils.cfg.data_dir)
@@ -193,7 +193,10 @@ def run_training(hypes, train_dir):
         # Start the queue runners.
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-        data_input.start_enqueuing_threads(hypes, q, sess)
+
+        with tf.name_scope('data_load'):
+            data_input.start_enqueuing_threads(hypes, q, sess,
+                                               utils.cfg.data_dir)
 
         # Instantiate a SummaryWriter to output summaries and the Graph.
         summary_writer = tf.train.SummaryWriter(train_dir,

@@ -36,12 +36,6 @@ from six.moves import urllib
 from tensorflow.python.platform import gfile
 
 
-def placeholders(hypes):
-    """ Placeholders are not used in cifar10"""
-
-    return None
-
-
 def create_queues(hypes, phase):
     """ Queues do not need to be created"""
 
