@@ -24,7 +24,7 @@ FLAGS = flags.FLAGS
 # configure logging
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
-                    level=logging.DEBUG,
+                    level=logging.INFO,
                     stream=sys.stdout)
 
 
@@ -105,9 +105,9 @@ def do_eval(hypes, eval_correct, phase, sess):
     # And run one epoch of eval.
 
     if phase == 'train':
-        num_examples = hypes['solver']['num_examples_per_epoch_for_train']
+        num_examples = hypes['data']['num_examples_per_epoch_for_train']
     if phase == 'val':
-        num_examples = hypes['solver']['num_examples_per_epoch_for_eval']
+        num_examples = hypes['data']['num_examples_per_epoch_for_eval']
 
     true_count = 0  # Counts the number of correct predictions.
     steps_per_epoch = num_examples // hypes['solver']['batch_size']
@@ -122,7 +122,7 @@ def do_eval(hypes, eval_correct, phase, sess):
     precision = true_count / num_examples
 
     logging.info('Data: %s  Num examples: %d  Num correct: %d  Precision @ 1: %0.04f' %
-                 (name, num_examples, true_count, precision))
+                 (phase, num_examples, true_count, precision))
 
     return precision
 
@@ -204,8 +204,8 @@ def run_training(hypes, train_dir):
 
         # And then after everything is built, start the training loop.
         solver = hypes['solver']
+        start_time = time.time()
         for step in xrange(solver['max_steps']):
-            start_time = time.time()
 
             # Run one step of the model.  The return values are the activations
             # from the `train_op` (which is discarded) and the `loss` Op.
@@ -214,7 +214,7 @@ def run_training(hypes, train_dir):
             # Write the summaries and print an overview fairly often.
             if step % 100 == 0:
                 # Print status to stdout.
-                duration = time.time() - start_time
+                duration = (time.time() - start_time)/100
                 examples_per_sec = solver['batch_size'] / duration
                 sec_per_batch = float(duration)
                 logging.info(
@@ -223,25 +223,32 @@ def run_training(hypes, train_dir):
                 # Update the events file.
                 summary_str = sess.run(summary_op)
                 summary_writer.add_summary(summary_str, step)
+                start_time = time.time()
 
             # Save a checkpoint and evaluate the model periodically.
-            if (step+1) % 1000 == 0 or (step + 1) == solver['max_steps']:
+            if (step+1) % 400 == 0 or (step + 1) == solver['max_steps']:
                 checkpoint_path = os.path.join(train_dir, 'model.ckpt')
                 saver.save(sess, checkpoint_path, global_step=step)
+                start_time = time.time()
                 # Evaluate against the training set.
 
-            if (step+1) % 1000 == 0 or (step + 1) == solver['max_steps']:
+            if (step+1) % 400 == 0 or (step + 1) == solver['max_steps']:
 
                 logging.info('Doing Evaluate with Training Data.')
 
-                precision = do_eval(hypes, eval_correct, phase='train')
+                precision = do_eval(hypes, eval_correct, phase='train',
+                                    sess=sess)
                 write_precision_to_summary(precision, summary_writer,
                                            "Train", step, sess)
+                
 
                 logging.info('Doing Evaluation with Testing Data.')
-                precision = do_eval(hypes, eval_correct, phase='train')
+                precision = do_eval(hypes, eval_correct, phase='val',
+                                    sess=sess)
                 write_precision_to_summary(precision, summary_writer,
-                                           "Test", step, sess)
+                                           'val', step, sess)
+
+                start_time = time.time()
 
         # stopping input Threads
         coord.request_stop()
