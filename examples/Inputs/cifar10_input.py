@@ -58,7 +58,7 @@ def inputs(hypes, q, phase, data_dir):
 
     if phase == 'train':
         return _distorted_inputs(hypes, data_dir)
-    elif phase == 'test':
+    elif phase == 'val':
         return _inputs(hypes, eval_data=True, data_dir=data_dir)
     else:
         assert(False)
