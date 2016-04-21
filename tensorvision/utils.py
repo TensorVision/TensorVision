@@ -1,3 +1,5 @@
+"""Utility functions."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -24,6 +26,14 @@ flags.DEFINE_string('config', cfg.default_config,
 
 
 def get_train_dir():
+    """
+    Get the path to the training directory.
+
+    Returns
+    -------
+    str :
+        The path to the training directory
+    """
     if FLAGS.name is None:
         train_dir = os.path.join(cfg.model_dir, cfg.default_name)
         logging.info(
@@ -44,13 +54,14 @@ def placeholder_inputs(batch_size):
     These placeholders are used as inputs by the rest of the model building
     code and will be fed from the downloaded data in the .run() loop, below.
 
-    Args:
-      batch_size: The batch size will be baked into both placeholders.
+    Parameters
+    ----------
+    batch_size : TODO
+        The batch size will be baked into both placeholders.
 
-    Returns:
-      images_placeholder: Images placeholder.
-      labels_placeholder: Labels placeholder.
-      keep_prob: keep_prob placeholder.
+    Returns
+    -------
+    TODO
     """
     # Note that the shapes of the placeholders match the shapes of the full
     # image and label tensors, except the first dimension is now batch_size
@@ -61,7 +72,8 @@ def placeholder_inputs(batch_size):
 
 
 def fill_feed_dict(kb, train):
-    """Fills the feed_dict for training the given step.
+    """
+    Fill the feed_dict for training the given step.
 
     A feed_dict takes the form of:
     feed_dict = {
@@ -69,12 +81,17 @@ def fill_feed_dict(kb, train):
         ....
     }
 
-    Args:
-      kb: The keep prob placeholder.
-      train: whether data set is on train.
+    Parameters
+    ----------
+    kb : TODO
+        The keep prob placeholder.
+    train : TODO
+        whether data set is on train.
 
-    Returns:
-      feed_dict: The feed dictionary mapping from placeholders to values.
+    Returns
+    -------
+    dict :
+        The feed dictionary mapping from placeholders to values.
     """
     # Create the feed_dict for the placeholders filled with the next
     # `batch size ` examples.

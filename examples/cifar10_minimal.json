@@ -1,8 +1,8 @@
 {
   "model": {
-    "input_file": "Examples/Inputs/cifar10_input.py",
-    "arch_file" : "Examples/Networks/minimal_cnn.py",
-    "solver_file" : "Examples/Optimizer/adam.py"
+    "input_file": "examples/inputs/cifar10_input.py",
+    "architecture_file" : "examples/architectures/minimal_cnn.py",
+    "optimizer_file" : "examples/optimizer/adam.py"
   },
 
   "data": {
@@ -10,7 +10,7 @@
     "num_examples_per_epoch_for_train" : 50000,
     "num_examples_per_epoch_for_eval" : 10000
   },
- 
+
   "arch": {
     "crop_size" : 32,
     "num_classes" : 10,
@@ -24,8 +24,8 @@
   "solver": {
       "opt": null,
       "batch_size": 128,
-      "epsilon": 0.00001, 
-      "learning_rate": 1e-4, 
+      "epsilon": 0.00001,
+      "learning_rate": 1e-4,
       "max_steps": 100000
   }
 }

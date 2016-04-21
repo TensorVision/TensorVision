@@ -26,9 +26,6 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 
-import gzip
-import os
-import re
 import sys
 import tarfile
 from six.moves import urllib
@@ -37,19 +34,34 @@ from tensorflow.python.platform import gfile
 
 
 def create_queues(hypes, phase):
-    """ Queues do not need to be created"""
-
+    """Queues do not need to be created."""
     return None
 
 
 def start_enqueuing_threads(hypes, q, sess):
-    """ Queues do not need to be created"""
-
+    """Queues do not need to be created."""
     return None
 
 
 def inputs(hypes, q, phase, data_dir):
+    """
+    Create TODO.
 
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+    q : TODO
+    phase : {'train', 'val'}
+    data_dir : str
+        Path to the data.
+
+    Returns
+    -------
+    tuple (images, labels)
+        images: Images. 4D tensor of [batch_size, height, width, 3] size.
+        labels: Labels. 1D tensor of [batch_size] size.
+    """
     if phase == 'train':
         return _distorted_inputs(hypes, data_dir)
     elif phase == 'val':
@@ -155,6 +167,7 @@ def _distorted_inputs(H, data_dir):
     """Construct distorted input for CIFAR training using the Reader ops.
 
     Args:
+      H: TODO
       data_dir: Path to the CIFAR-10 data directory.
 
     Returns:

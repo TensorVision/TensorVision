@@ -1,7 +1,4 @@
-"""Evaluation of the Model.
-
-
-"""
+"""Evaluation of the model."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -38,7 +35,16 @@ tf.app.flags.DEFINE_string('eval_data', 'test',
 
 
 def evaluate(train_dir):
-  """Loads the model and runs evaluation
+  """
+  Loads the model and runs evaluation
+
+  Parameters
+  ----------
+  train_dir : TODO
+
+  Returns
+  -------
+  TODO
   """
 
   target_dir = os.path.join(train_dir, "model_files")  
@@ -100,10 +106,8 @@ def evaluate(train_dir):
                   name="eval")
 
 
-
-
 def main(_):
-
+  """TODO."""
   train_dir = utils.get_train_dir()
   evaluate(train_dir)
 
