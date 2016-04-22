@@ -38,7 +38,7 @@ def create_queues(hypes, phase):
     return None
 
 
-def start_enqueuing_threads(hypes, q, sess):
+def start_enqueuing_threads(hypes, q, sess, data_dir):
     """Queues do not need to be created."""
     return None
 
