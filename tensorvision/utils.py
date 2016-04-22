@@ -10,7 +10,7 @@ import time
 import os
 import logging
 
-import config as cfg
+import tensorvision.config as cfg
 
 
 # Basic model parameters as external flags.

@@ -37,6 +37,8 @@ tests_require = ['mock',
                  'pytest-pep8',
                  ]
 
+scripts = ['bin/tv-train']
+
 setup(
     name="tensorvision",
     version=version,
@@ -53,6 +55,7 @@ setup(
                  "Topic :: Scientific/Engineering :: Artificial Intelligence",
                  ],
     keywords="",
+    scripts=scripts,
     author="Marvin Teichman, Martin Thoma",
     author_email="marvin.teichmann@googlemail.com, info@martin-thoma.de",
     url="https://github.com/MarvinTeichmann/TensorVision",
