@@ -2,7 +2,8 @@ Models/*
 
 .idea/
 
-# mnist stuff
+# Model Stuff
+DATA
 output
 .nfs*
 
