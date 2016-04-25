@@ -161,9 +161,7 @@ def do_eval(hypes, eval_correct, phase, sess):
 
     # run evaluation on num_examples many images
     for step in xrange(steps_per_epoch):
-        # start_time = time.time()
         true_count += sess.run(eval_correct[phase])
-        # duration = time.time() - start_time
 
     precision = true_count / num_examples
 

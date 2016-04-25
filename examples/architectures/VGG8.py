@@ -80,7 +80,6 @@ def _conv_layer(name, bottom, num_filter,
         num_input = ksize[0] * ksize[1] * n
         stddev = (2 / num_input)**0.5
         logging.debug("Layer: %s, stddev: %f" % (name, stddev))
-        # stddev = 1e-4
         weights = _weight_variable(shape, stddev)
         bias = _bias_variable([num_filter], constant=0.0)
         conv = tf.nn.conv2d(bottom, weights,
@@ -115,7 +114,7 @@ def _fc_layer_with_dropout(bottom, name, size,
     with tf.variable_scope(name) as scope:
         n1 = bottom.get_shape()[1].value
         stddev = (2 / n1)**0.5
-        # stddev = 0.04
+
         logging.debug("Layer: %s, Size: %d", name, n1)
         logging.debug("Layer: %s, stddev: %f", name, stddev)
         weights = _variable_with_weight_decay(shape=[n1, size],
