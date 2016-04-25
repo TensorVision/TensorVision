@@ -1,5 +1,3 @@
-"""Utility functions."""
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -17,31 +15,26 @@ import tensorvision.config as cfg
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('name', None,
-                    'Folder where Data will be stored.')
+tf.app.flags.DEFINE_boolean('debug', False, 'Soggy Leaves')
+
 
 # usage: train.py --config=my_model_params.py
-flags.DEFINE_string('config', cfg.default_config,
+flags.DEFINE_string('hypes', cfg.default_config,
                     'File storing model parameters.')
 
 
-def get_train_dir():
-    """
-    Get the path to the training directory.
-
-    Returns
-    -------
-    str :
-        The path to the training directory
-    """
-    if FLAGS.name is None:
-        train_dir = os.path.join(cfg.model_dir, cfg.default_name)
+def get_train_dir(hypes_fname):
+    if FLAGS.debug:
+        train_dir = os.path.join(cfg.model_dir, 'debug')
         logging.info(
-            "Saving/Loading Model from default Folder: %s ", train_dir)
+            "Saving/Loading Model from debug Folder: %s ", train_dir)
         logging.info("Use --name=MYNAME to use Folder: %s ",
                      os.path.join(cfg.model_dir, "MYNAME"))
     else:
-        train_dir = os.path.join(cfg.model_dir, FLAGS.name)
+        json_name = hypes_fname.split('/')[-1].replace('.json', '')
+        date = datetime.now().strftime('%Y_%m_%d_%H.%M')
+        run_name = '%s_%s' % (json_name, date)
+        train_dir = os.path.join(cfg.model_dir, run_name)\
 
     return train_dir
 
@@ -54,14 +47,13 @@ def placeholder_inputs(batch_size):
     These placeholders are used as inputs by the rest of the model building
     code and will be fed from the downloaded data in the .run() loop, below.
 
-    Parameters
-    ----------
-    batch_size : TODO
-        The batch size will be baked into both placeholders.
+    Args:
+      batch_size: The batch size will be baked into both placeholders.
 
-    Returns
-    -------
-    TODO
+    Returns:
+      images_placeholder: Images placeholder.
+      labels_placeholder: Labels placeholder.
+      keep_prob: keep_prob placeholder.
     """
     # Note that the shapes of the placeholders match the shapes of the full
     # image and label tensors, except the first dimension is now batch_size
@@ -72,8 +64,7 @@ def placeholder_inputs(batch_size):
 
 
 def fill_feed_dict(kb, train):
-    """
-    Fill the feed_dict for training the given step.
+    """Fills the feed_dict for training the given step.
 
     A feed_dict takes the form of:
     feed_dict = {
@@ -81,17 +72,12 @@ def fill_feed_dict(kb, train):
         ....
     }
 
-    Parameters
-    ----------
-    kb : TODO
-        The keep prob placeholder.
-    train : TODO
-        whether data set is on train.
+    Args:
+      kb: The keep prob placeholder.
+      train: whether data set is on train.
 
-    Returns
-    -------
-    dict :
-        The feed dictionary mapping from placeholders to values.
+    Returns:
+      feed_dict: The feed dictionary mapping from placeholders to values.
     """
     # Create the feed_dict for the placeholders filled with the next
     # `batch size ` examples.

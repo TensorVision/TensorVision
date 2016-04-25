@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """Trains, evaluates and saves the model network using a queue."""
 # pylint: disable=missing-docstring
 from __future__ import absolute_import
@@ -71,8 +74,8 @@ def initialize_training_folder(hypes, train_dir):
 
     # TODO: read more about loggers and make file logging neater.
 
-    config_file = tf.app.flags.FLAGS.config
-    _copy_parameters_to_traindir(config_file, "hypes.json", target_dir)
+    hypes_file = tf.app.flags.FLAGS.hypes
+    _copy_parameters_to_traindir(hypes_file, "hypes.json", target_dir)
     _copy_parameters_to_traindir(
         hypes['model']['input_file'], "data_input.py", target_dir)
     _copy_parameters_to_traindir(
@@ -283,7 +286,7 @@ def run_training(hypes, train_dir):
                                     sess=sess)
                 write_precision_to_summary(precision, summary_writer,
                                            "Train", step, sess)
-                
+
 
                 logging.info('Doing Evaluation with Testing Data.')
                 precision = do_eval(hypes, eval_correct, phase='val',
@@ -299,17 +302,14 @@ def run_training(hypes, train_dir):
 
 
 def main(_):
-    """TODO."""
-    if FLAGS.config == "example_params.py":
-        logging.info("Training on default config.")
-        logging.info(
-            "Use train.py --config=your_config.py to train different models")
 
-    with open(tf.app.flags.FLAGS.config, 'r') as f:
+    with open(tf.app.flags.FLAGS.hypes, 'r') as f:
         logging.info("f: %s", f)
         hypes = json.load(f)
 
-    train_dir = utils.get_train_dir()
+    train_dir = utils.get_train_dir(tf.app.flags.FLAGS.hypes)
+    hypes['train_dir'] = train_dir
+
     initialize_training_folder(hypes, train_dir)
     maybe_download_and_extract(hypes, train_dir)
     run_training(hypes, train_dir)
