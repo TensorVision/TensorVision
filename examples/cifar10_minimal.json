@@ -2,6 +2,7 @@
   "model": {
     "input_file": "examples/inputs/cifar10_input.py",
     "architecture_file" : "examples/architectures/minimal_cnn.py",
+    "objective_file" : "examples/objectives/softmax_classifier.py",
     "optimizer_file" : "examples/optimizer/adam.py"
   },
 
