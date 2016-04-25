@@ -133,7 +133,7 @@ def _fc_layer_with_dropout(bottom, name, size,
         return fullc
 
 
-def _softmax(bottom, num_classes):
+def _logits(bottom, num_classes):
     # Computing Softmax
     with tf.variable_scope('logits') as scope:
         n1 = bottom.get_shape()[1].value
@@ -188,7 +188,7 @@ def inference(H, images, train=True):
     fc5 = _fc_layer_with_dropout(name='fc5', bottom=fc4,
                                  train=train, size=192)
     # Adding Softmax
-    logits = _softmax(fc5, H['arch']['num_classes'])
+    logits = _logits(fc5, H['arch']['num_classes'])
 
     return logits
 
