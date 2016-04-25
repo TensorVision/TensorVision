@@ -85,6 +85,7 @@ content:
   "model": {
     "input_file": "examples/inputs/cifar10_input.py",
     "architecture_file" : "examples/networks/cifar_net.py",
+    "objective_file" : "examples/objectives/softmax_classifier.py",
     "optimizer_file" : "examples/optimizer/exp_decay.py"
   }
 }
@@ -100,11 +101,17 @@ have a function `inputs(hypes, q, phase, data_dir)`.
 #### Adjust architecture file
 
 The `architecture_file` contains the architecture of the network. It has to
-have the following functions:
+have the function `inference(hypes, images, train=True)`, which takes image tensors
+creates a computation graph to produce logits
 
-* `loss(H, logits, labels)`
-* `inference(H, images, train=True)`
-* `evaluation(H, logits, labels)`
+#### Adjust objective file
+
+The `objective_file` contains task spezific code od the model. It
+has to implement the following functions:
+
+* `decoder(hypes, images, train=True)`
+* `loss(hypes, decoder, labels)`
+* `evaluation(hypes, decoder, labels)`
 
 
 #### Adjust the solver file
