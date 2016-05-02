@@ -8,7 +8,55 @@ import time
 import os
 import logging
 
-import tensorvision.config as cfg
+
+# Add basic configuration
+def cfg():
+    """General configuration values."""
+    return None
+
+
+def _set_cfg_value(cfg_name, env_name, default, cfg):
+    """
+    Set a value for the configuration.
+
+    Parameters
+    ----------
+    cfg_name : str
+    env_name : str
+    default : str
+    cfg : function
+    """
+    if env_name in os.environ:
+        setattr(cfg, cfg_name, os.environ[env_name])
+    else:
+        logging.info("No environment variable '%s' found. Set to '%s'.",
+                     env_name,
+                     default)
+        setattr(cfg, cfg_name, default)
+
+_set_cfg_value('data_dir', 'TV_DATA_DIR', 'DATA', cfg)
+_set_cfg_value('model_dir', 'TV_MODEL_DIR', 'output', cfg)
+_set_cfg_value('default_config',
+               'TV_DEFAULT_CONFIG_PATH',
+               'examples/cifar10_minimal.json',
+               cfg)
+_set_cfg_value('plugin_dir',
+               'TV_PLUGIN_DIR',
+               os.path.expanduser("~/tv-plugins"),
+               cfg)
+
+
+def load_plugins():
+    """Load all TV plugins."""
+    if os.path.isdir(cfg.plugin_dir):
+        onlyfiles = [f for f in os.listdir(cfg.plugin_dir)
+                     if os.path.isfile(os.path.join(cfg.plugin_dir, f))]
+        pyfiles = [f for f in onlyfiles if f.endswith('.py')]
+        import imp
+        for pyfile in pyfiles:
+            logging.info('Loaded plugin "%s".', pyfile)
+            imp.load_source(os.path.splitext(os.path.basename(pyfile))[0],
+                            pyfile)
 
 
 # Basic model parameters as external flags.
@@ -21,6 +69,7 @@ tf.app.flags.DEFINE_boolean('debug', False, 'Soggy Leaves')
 # usage: train.py --config=my_model_params.py
 flags.DEFINE_string('hypes', cfg.default_config,
                     'File storing model parameters.')
+load_plugins()
 
 
 def get_train_dir(hypes_fname):
