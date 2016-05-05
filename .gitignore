@@ -3,8 +3,8 @@ Models/*
 .idea/
 
 # Model Stuff
-DATA
-output
+examples/RUNS
+examples/DATA
 .nfs*
 
 # Byte-compiled / optimized / DLL files
