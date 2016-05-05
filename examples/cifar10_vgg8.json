@@ -1,9 +1,9 @@
 {
   "model": {
-    "input_file": "examples/inputs/cifar10_input.py",
-    "architecture_file" : "examples/architectures/VGG8.py",
-    "objective_file" : "examples/objectives/softmax_classifier.py",
-    "optimizer_file" : "examples/optimizer/adam.py"
+    "input_file": "inputs/cifar10_input.py",
+    "architecture_file" : "architectures/VGG8.py",
+    "objective_file" : "objectives/softmax_classifier.py",
+    "optimizer_file" : "optimizer/adam.py"
   },
 
   "data": {

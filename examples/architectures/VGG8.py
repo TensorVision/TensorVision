@@ -84,7 +84,8 @@ def _conv_layer(name, bottom, num_filter,
         bias = _bias_variable([num_filter], constant=0.0)
         conv = tf.nn.conv2d(bottom, weights,
                             strides=strides, padding=padding)
-        relu = tf.nn.relu(conv + bias, name=scope.name)
+        bias_layer = tf.nn.bias_add(conv, bias, name=scope.name)
+        relu = tf.nn.relu(bias_layer, name=scope.name)
         _activation_summary(relu)
     return relu
 

@@ -33,7 +33,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     stream=sys.stdout)
 
 
-def _copy_parameters_to_traindir(input_file, target_name, target_dir):
+def _copy_parameters_to_traindir(hypes, input_file, target_name, target_dir):
     """
     Helper to copy files defining the network to the saving dir.
 
@@ -47,6 +47,7 @@ def _copy_parameters_to_traindir(input_file, target_name, target_dir):
         directory where training data is saved
     """
     target_file = os.path.join(target_dir, target_name)
+    input_file = os.path.join(hypes['base_path'], input_file)
     copyfile(input_file, target_file)
 
 
@@ -76,16 +77,18 @@ def initialize_training_folder(hypes, train_dir):
 
     # TODO: read more about loggers and make file logging neater.
 
-    hypes_file = tf.app.flags.FLAGS.hypes
-    _copy_parameters_to_traindir(hypes_file, "hypes.json", target_dir)
+    hypes_file = os.path.basename(tf.app.flags.FLAGS.hypes)
     _copy_parameters_to_traindir(
-        hypes['model']['input_file'], "data_input.py", target_dir)
+        hypes, hypes_file, "hypes.json", target_dir)
     _copy_parameters_to_traindir(
-        hypes['model']['architecture_file'], "architecture.py", target_dir)
+        hypes, hypes['model']['input_file'], "data_input.py", target_dir)
     _copy_parameters_to_traindir(
-        hypes['model']['objective_file'], "objective.py", target_dir)
+        hypes, hypes['model']['architecture_file'], "architecture.py",
+        target_dir)
     _copy_parameters_to_traindir(
-        hypes['model']['optimizer_file'], "solver.py", target_dir)
+        hypes, hypes['model']['objective_file'], "objective.py", target_dir)
+    _copy_parameters_to_traindir(
+        hypes, hypes['model']['optimizer_file'], "solver.py", target_dir)
 
 
 def maybe_download_and_extract(hypes, train_dir):
@@ -99,7 +102,8 @@ def maybe_download_and_extract(hypes, train_dir):
     train_dir : str
         Path to the training data directory
     """
-    data_input = imp.load_source("input", hypes['model']['input_file'])
+    f = os.path.join(hypes['base_path'], hypes['model']['input_file'])
+    data_input = imp.load_source("input", f)
     if hasattr(data_input, 'maybe_download_and_extract'):
         data_input.maybe_download_and_extract(hypes, utils.cfg.data_dir)
 
@@ -178,10 +182,14 @@ def run_training(hypes, train_dir):
     # test on MNIST.
 
     # Tell TensorFlow that the model will be built into the default Graph.
-    data_input = imp.load_source("input", hypes['model']['input_file'])
-    arch = imp.load_source("arch", hypes['model']['architecture_file'])
-    objective = imp.load_source("objective", hypes['model']['objective_file'])
-    solver = imp.load_source("solver", hypes['model']['optimizer_file'])
+    f = os.path.join(hypes['base_path'], hypes['model']['input_file'])
+    data_input = imp.load_source("input", f)
+    f = os.path.join(hypes['base_path'], hypes['model']['architecture_file'])
+    arch = imp.load_source("arch", f)
+    f = os.path.join(hypes['base_path'], hypes['model']['objective_file'])
+    objective = imp.load_source("objective", f)
+    f = os.path.join(hypes['base_path'], hypes['model']['optimizer_file'])
+    solver = imp.load_source("solver", f)
 
     with tf.Graph().as_default():
 
@@ -314,7 +322,10 @@ def main(_):
         hypes = json.load(f)
 
     train_dir = utils.get_train_dir(tf.app.flags.FLAGS.hypes)
+    hypes_file = tf.app.flags.FLAGS.hypes
+
     hypes['train_dir'] = train_dir
+    hypes['base_path'] = os.path.dirname(os.path.realpath(hypes_file))
 
     initialize_training_folder(hypes, train_dir)
     maybe_download_and_extract(hypes, train_dir)

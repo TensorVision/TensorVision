@@ -1,9 +1,9 @@
 {
   "model": {
-    "input_file": "examples/inputs/cifar10_input.py",
-    "architecture_file" : "examples/architectures/cifar_net.py",
-    "objective_file" : "examples/objectives/softmax_classifier.py",
-    "optimizer_file" : "examples/optimizer/exp_decay.py"
+    "input_file": "inputs/cifar10_input.py",
+    "architecture_file" : "architectures/cifar_net.py",
+    "objective_file" : "objectives/softmax_classifier.py",
+    "optimizer_file" : "optimizer/exp_decay.py"
   },
 
   "data": {
