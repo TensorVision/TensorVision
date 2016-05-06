@@ -34,25 +34,6 @@ flags.DEFINE_string('gpus', None,
                     ('Which gpus to use. For multiple GPUs use comma seperated'
                      'ids. [e.g. --gpus 0,3]'))
 
-if FLAGS.hypes is None:
-    logging.error("No hypes are given.")
-    logging.error("Usage: tv-train --hypes hypes.json")
-    exit(1)
-
-if FLAGS.gpus is None:
-    if 'TV_USE_GPUS' in os.environ:
-        if os.environ['TV_USE_GPUS'] == 'force':
-            logging.error('Please specify a GPU.')
-            logging.error('Usage tv-train --gpus <ids>')
-            exit(1)
-        else:
-            gpus = os.environ['TV_USE_GPUS']
-            logging.info("GPUs are set to: %s", gpus)
-            os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-else:
-    logging.info("GPUs are set to: %s", FLAGS.gpus)
-    os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpus
-
 
 def set_dirs(hypes, hypes_fname):
     """Add directories into hypes."""
@@ -144,5 +125,3 @@ def load_plugins():
             logging.info('Loaded plugin "%s".', pyfile)
             imp.load_source(os.path.splitext(os.path.basename(pyfile))[0],
                             pyfile)
-
-load_plugins()

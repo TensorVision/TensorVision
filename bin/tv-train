@@ -137,7 +137,7 @@ def write_precision_to_summary(precision, summary_writer, name, global_step,
 
 
 def do_eval(hypes, eval_correct, phase, sess):
-    """Runs one evaluation against the full epoch of data.
+    """Run one evaluation against the full epoch of data.
 
     Parameters
     ----------
@@ -323,11 +323,31 @@ def run_training(hypes):
 
 
 def main(_):
+    """Run main function."""
+    if FLAGS.hypes is None:
+        logging.error("No hypes are given.")
+        logging.error("Usage: tv-train --hypes hypes.json")
+        exit(1)
+
+    if FLAGS.gpus is None:
+        if 'TV_USE_GPUS' in os.environ:
+            if os.environ['TV_USE_GPUS'] == 'force':
+                logging.error('Please specify a GPU.')
+                logging.error('Usage tv-train --gpus <ids>')
+                exit(1)
+            else:
+                gpus = os.environ['TV_USE_GPUS']
+                logging.info("GPUs are set to: %s", gpus)
+                os.environ['CUDA_VISIBLE_DEVICES'] = gpus
+    else:
+        logging.info("GPUs are set to: %s", FLAGS.gpus)
+        os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpus
 
     with open(tf.app.flags.FLAGS.hypes, 'r') as f:
         logging.info("f: %s", f)
         hypes = json.load(f)
 
+    utils.load_plugins()
     utils.set_dirs(hypes, tf.app.flags.FLAGS.hypes)
 
     initialize_training_folder(hypes)
