@@ -277,17 +277,12 @@ def run_training(hypes, train_dir):
             _, loss_value = sess.run([train_op, loss])
 
             # Write the summaries and print an overview fairly often.
-            if step % 100 == 0:
+            if step % int(utils.cfg.step_show) == 0:
                 # Print status to stdout.
                 duration = (time.time() - start_time) / 100
                 examples_per_sec = solver['batch_size'] / duration
                 sec_per_batch = float(duration)
-                info_str = ('Step {step}/{total_steps}: '
-                            'loss = {loss_value:.2f} '
-                            '( {sec_per_batch:.3f} sec (per Batch); '
-                            '{examples_per_sec:.1f} examples/sec;)')
-                if 'TV_STEP_STR' in os.environ:
-                    info_str = os.environ['TV_STEP_STR']
+                info_str = utils.cfg.step_str
                 logging.info(info_str.format(step=step,
                                              total_steps=solver['max_steps'],
                                              loss_value=loss_value,

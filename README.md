@@ -34,6 +34,8 @@ TensorVision is configured with environment variables. It is quite easy to
 set them yourself (see [multiple ways](http://unix.stackexchange.com/a/117470/4784)).
 The supported variables are:
 
+* `TV_STEP_SHOW`: After how many epochs of training shot the `TV_STEP_STR` be
+                  printed?
 * `TV_STEP_STR`: Set what you want to see each 100th step of the training.
   The default is `'Step {step}/{total_steps}: loss = {loss_value:.2f} ( {sec_per_batch:.3f} sec (per Batch); {examples_per_sec:.1f} examples/sec;)'`
 * `TV_IS_DEV`: Either 0 or 1 - set if you want to see debug messages.

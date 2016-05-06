@@ -44,6 +44,13 @@ _set_cfg_value('plugin_dir',
                'TV_PLUGIN_DIR',
                os.path.expanduser("~/tv-plugins"),
                cfg)
+_set_cfg_value('step_show', 'TV_STEP_SHOW', 100, cfg)
+_set_cfg_value('step_str',
+               'TV_STEP_STR',
+               ('Step {step}/{total_steps}: loss = {loss_value:.2f} '
+                '( {sec_per_batch:.3f} sec (per Batch); '
+                '{examples_per_sec:.1f} examples/sec)'),
+               cfg)
 
 
 def load_plugins():
