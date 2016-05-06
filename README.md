@@ -21,7 +21,7 @@ $ python eval.py
 ```
 
 Flags:
-* --config=Examples/myconfig
+* --hypes=myconfig.json
 * --name=myname
 
 
@@ -51,10 +51,12 @@ $ pip install -r requirements-dev.txt
 ```
 
 For development, you can avoid reinstalling the TensorVision package by adding
-TensorVision to your PYTHONPATH. In my case, that is:
+TensorVision to your PYTHONPATH and the `bin` directory to your PATH. In my
+case, that is:
 
 ```bash
 $ export PYTHONPATH="${PYTHONPATH}:/home/moose/GitHub/TensorVision/"
+$ export PATH="/home/moose/GitHub/TensorVision/bin/:$PATH"
 ```
 
 You can run the tests by
