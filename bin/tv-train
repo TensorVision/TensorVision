@@ -12,6 +12,18 @@ import json
 import logging
 import os.path
 import sys
+
+# configure logging
+if 'TV_IS_DEV' in os.environ and os.environ['TV_IS_DEV']:
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
+                        level=logging.DEBUG,
+                        stream=sys.stdout)
+else:
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
+                        level=logging.INFO,
+                        stream=sys.stdout)
+
+
 import time
 
 from shutil import copyfile
@@ -24,13 +36,6 @@ import tensorvision.utils as utils
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-
-
-# configure logging
-
-logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
-                    level=logging.INFO,
-                    stream=sys.stdout)
 
 
 def _copy_parameters_to_traindir(hypes, input_file, target_name, target_dir):
@@ -272,15 +277,18 @@ def run_training(hypes, train_dir):
             _, loss_value = sess.run([train_op, loss])
 
             # Write the summaries and print an overview fairly often.
-            if step % 100 == 0:
+            if step % int(utils.cfg.step_show) == 0:
                 # Print status to stdout.
                 duration = (time.time() - start_time) / 100
                 examples_per_sec = solver['batch_size'] / duration
                 sec_per_batch = float(duration)
-                logging.info(
-                    'Step % d: loss = % .2f '
-                    '( % .3f sec (per Batch); % .1f examples/sec;)' %
-                    (step, loss_value, sec_per_batch, examples_per_sec))
+                info_str = utils.cfg.step_str
+                logging.info(info_str.format(step=step,
+                                             total_steps=solver['max_steps'],
+                                             loss_value=loss_value,
+                                             sec_per_batch=sec_per_batch,
+                                             examples_per_sec=examples_per_sec)
+                             )
                 # Update the events file.
                 summary_str = sess.run(summary_op)
                 summary_writer.add_summary(summary_str, step)

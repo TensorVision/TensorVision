@@ -25,6 +25,26 @@ Flags:
 * --name=myname
 
 
+## Configurations
+
+TensorVision comes with reasonable defaults. You only need to read this if you
+want tweak it to your needs.
+
+TensorVision is configured with environment variables. It is quite easy to
+set them yourself (see [multiple ways](http://unix.stackexchange.com/a/117470/4784)).
+The supported variables are:
+
+* `TV_STEP_SHOW`: After how many epochs of training shot the `TV_STEP_STR` be
+                  printed?
+* `TV_STEP_STR`: Set what you want to see each 100th step of the training.
+  The default is `'Step {step}/{total_steps}: loss = {loss_value:.2f} ( {sec_per_batch:.3f} sec (per Batch); {examples_per_sec:.1f} examples/sec;)'`
+* `TV_IS_DEV`: Either 0 or 1 - set if you want to see debug messages.
+* `TV_DATA_DIR`: The default directory where to look for data.
+* `TV_MODEL_DIR`: The default directory where to look for the model.
+* `TV_DEFAULT_CONFIG_PATH`: The default configuration file (.json) to use.
+* `TV_PLUGIN_DIR`: Directory with Python scripts which get automatically
+                   imported by TensorVision
+
 ## Requirements
 
 The following python moduls need to be installed:
