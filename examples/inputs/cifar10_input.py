@@ -51,7 +51,8 @@ def inputs(hypes, q, phase, data_dir):
     ----------
     hypes : dict
         Hyperparameters
-    q : TODO
+    q : Queue
+        e.g. a tf.FIFOQueue
     phase : {'train', 'val'}
     data_dir : str
         Path to the data.

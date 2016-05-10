@@ -36,15 +36,16 @@ tf.app.flags.DEFINE_string('eval_data', 'test',
 
 def evaluate(train_dir):
   """
-  Loads the model and runs evaluation
+  Load the model and run evaluation.
+
+  TODO: Which kind of evaluation? Does it simply get printed to standard
+  output?
 
   Parameters
   ----------
-  train_dir : TODO
-
-  Returns
-  -------
-  TODO
+  train_dir : str
+      Path to a directory which includes a folder model_files. This folder
+      has to include a params.py, input.py and a network.py
   """
 
   target_dir = os.path.join(train_dir, "model_files")  
