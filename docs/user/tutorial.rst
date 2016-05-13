@@ -15,7 +15,7 @@ Train a model:
 
 .. highlight:: bash
 
-  tv-train --hypes config.json
+   tv-train --hypes config.json
 
 
 Evaluate a model:
@@ -23,7 +23,7 @@ Evaluate a model:
 
 .. highlight:: bash
 
-  python eval.py
+   python eval.py
 
 
 Flags:
@@ -46,14 +46,14 @@ content:
 
 .. highlight:: json
 
-  {
-    "model": {
-      "input_file": "examples/inputs/cifar10_input.py",
-      "architecture_file" : "examples/networks/cifar_net.py",
-      "objective_file" : "examples/objectives/softmax_classifier.py",
-      "optimizer_file" : "examples/optimizer/exp_decay.py"
-    }
-  }
+   {
+     "model": {
+       "input_file": "examples/inputs/cifar10_input.py",
+       "architecture_file" : "examples/networks/cifar_net.py",
+       "objective_file" : "examples/objectives/softmax_classifier.py",
+       "optimizer_file" : "examples/optimizer/exp_decay.py"
+     }
+   }
 
 
 Adjust input file
@@ -64,8 +64,9 @@ have a function ``inputs(hypes, q, phase, data_dir)``.
 
 The parameters of `inputs` are:
 
-* ``hypes``: A dictionary which contains everything your `model.json` file had.
-* ``q``: A queue (e.g. `FIFOQueue`_
+* ``hypes``: A dictionary which contains everything your ``model.json`` file
+  had.
+* ``q``: A queue (e.g. `FIFOQueue`_)
 * ``phase``: Either ``train`` or ``val``
 * ``data_dir``: Path to the data. This can be set with ``TV_DIR_DATA``.
 
