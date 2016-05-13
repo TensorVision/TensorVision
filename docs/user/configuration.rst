@@ -8,7 +8,7 @@ TensorVision comes with reasonable defaults. You only need to read this if you
 want tweak it to your needs.
 
 TensorVision is configured with environment variables. It is quite easy to
-set them yourself (see [multiple ways](http://unix.stackexchange.com/a/117470/4784)).
+set them yourself (see `multiple ways`_).
 The supported variables are:
 
 * ``TV_DIR_DATA``: The default directory where to look for data.
@@ -25,8 +25,11 @@ The supported variables are:
   The default is
 
 
-.. highlight:: python
+.. code-block:: python
 
    Step {step}/{total_steps}: loss = {loss_value:.2f}
    ( {sec_per_batch:.3f} sec (per Batch);
    {examples_per_sec:.1f} examples/sec;)
+
+
+.. _multiple ways: http://unix.stackexchange.com/a/117470/4784

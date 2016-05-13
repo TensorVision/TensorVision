@@ -13,7 +13,7 @@ Basics
 Train a model:
 
 
-.. highlight:: bash
+.. code-block:: bash
 
    tv-train --hypes config.json
 
@@ -21,7 +21,7 @@ Train a model:
 Evaluate a model:
 
 
-.. highlight:: bash
+.. code-block:: bash
 
    python eval.py
 
@@ -44,7 +44,7 @@ Create JSON file
 Create a json file (e.g. `cifar10_cnn.json`). It has at least the following
 content:
 
-.. highlight:: json
+.. code-block:: json
 
    {
      "model": {
