@@ -99,6 +99,9 @@ Enter the directory and install the requirements:
   cd TensorVision
   pip install -r requirements.txt
 
+You should also install the additional development requirements which can be
+found in ``requirements-dev.txt``.
+
 To install the TensorVision package itself, in editable mode, run:
 
 .. code-block:: bash
@@ -122,6 +125,13 @@ SSH clone URL instead: ``git@github.com:<your-github-name>/TensorVision.git``.
 
 You can now use this installation to develop features and send us pull requests
 on GitHub, see :doc:`development`!
+
+
+You can run the tests by
+
+.. code-block:: bash
+
+  python setup.py test
 
 
 GPU support

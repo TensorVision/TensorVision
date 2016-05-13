@@ -18,6 +18,7 @@ library as a developer.
   :maxdepth: 2
 
   user/installation
+  user/configuration
   user/tutorial
   user/development
 
