@@ -72,17 +72,20 @@ def inputs(hypes, q, phase, data_dir):
 
 
 def read_cifar10(filename_queue):
-    """Reads and parses examples from CIFAR10 data files.
+    """
+    Reads and parses examples from CIFAR10 data files.
 
     Recommendation: if you want N-way read parallelism, call this function
     N times.  This will give you N independent Readers reading different
     files & positions within those files, which will give better mixing of
     examples.
 
-    Args:
-      filename_queue: A queue of strings with the filenames to read from.
+    Parameters
+    ----------
+    filename_queue : A queue of strings with the filenames to read from.
 
-    Returns:
+    Returns
+    ----------
       An object representing a single example, with the following fields:
         height: number of rows in the result (32)
         width: number of columns in the result (32)
