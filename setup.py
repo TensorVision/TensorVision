@@ -28,8 +28,7 @@ except IOError:
 
 install_requires = ['numpy',
                     'scipy',
-                    'tensorflow',
-                    'pillow']
+                    'tensorflow']
 
 tests_require = ['mock',
                  'pytest',
