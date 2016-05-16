@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import imp
 import logging
+import numpy as np
 import os
 import time
 
@@ -91,6 +93,125 @@ def set_dirs(hypes, hypes_fname):
     return
 
 
+def start_tv_session(hypes):
+    """Run one evaluation against the full epoch of data.
+
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+
+    return:
+        sess, saver, summary_op, summary_writer, threads
+    """
+    # Build the summary operation based on the TF collection of Summaries.
+    summary_op = tf.merge_all_summaries()
+
+    # Create a saver for writing training checkpoints.
+    saver = tf.train.Saver()
+
+    # Create a session for running Ops on the Graph.
+    sess = tf.Session()
+
+    # Run the Op to initialize the variables.
+    init = tf.initialize_all_variables()
+    sess.run(init)
+
+    # Start the queue runners.
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+    # Instantiate a SummaryWriter to output summaries and the Graph.
+    summary_writer = tf.train.SummaryWriter(hypes['dirs']['output_dir'],
+                                            graph=sess.graph)
+
+    return sess, saver, summary_op, summary_writer, coord, threads
+
+
+def load_modules_from_hypes(hypes):
+    """Load all modules from the files specified in hypes.
+
+    Namely the modules loaded are:
+    input_file, architecture_file, objective_file, optimizer_file
+
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+
+    Returns
+    -------
+    data_input, arch, objective, solver
+    """
+    base_path = hypes['dirs']['base_path']
+    f = os.path.join(base_path, hypes['model']['input_file'])
+    data_input = imp.load_source("input", f)
+    f = os.path.join(base_path, hypes['model']['architecture_file'])
+    arch = imp.load_source("arch", f)
+    f = os.path.join(base_path, hypes['model']['objective_file'])
+    objective = imp.load_source("objective", f)
+    f = os.path.join(base_path, hypes['model']['optimizer_file'])
+    solver = imp.load_source("solver", f)
+
+    return data_input, arch, objective, solver
+
+
+def do_eval(hypes, eval_list, phase, sess):
+    """
+    Run one evaluation against the full epoch of data.
+
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+    eval_correct : TODO
+        The Tensor that returns the number of correct predictions.
+    sess : TODO
+        The session in which the model has been trained.
+    name : str
+        Describes the data the evaluation is run on
+
+    Returns
+    -------
+    float
+        The precision
+    """
+    # And run one epoch of eval.
+    # Checking for List for compability
+    if type(eval_list[phase]) is list:
+        eval_names, eval_op = zip(*eval_list[phase])
+
+    else:
+        logging.warning("Passing eval_op directly is deprecated."
+                        "Pass a list of tubles instead.")
+        eval_names = ['Accuracy']
+        eval_op = [eval_list[phase]]
+
+    assert(len(eval_names) == len(eval_op))
+
+    if phase == 'train':
+        num_examples = hypes['data']['num_examples_per_epoch_for_train']
+    if phase == 'val':
+        num_examples = hypes['data']['num_examples_per_epoch_for_eval']
+
+    steps_per_epoch = num_examples // hypes['solver']['batch_size']
+    num_examples = steps_per_epoch * hypes['solver']['batch_size']
+
+    logging.info('Data: % s  Num examples: % d ' % (phase, num_examples))
+    # run evaluation on num_examples many images
+    results = sess.run(eval_op)
+    logging.debug('Output of eval: %s', results)
+    for step in xrange(1, steps_per_epoch):
+        results = map(np.add, results, sess.run(eval_op))
+
+    avg_results = [result / steps_per_epoch for result in results]
+
+    for name, value in zip(eval_names, avg_results):
+        logging.info('%s : % 0.04f ' % (name, value))
+
+    return avg_results[0]  # TODO
+
+
 # Add basic configuration
 def cfg():
     """General configuration values."""
@@ -121,7 +242,7 @@ _set_cfg_value('plugin_dir',
                os.path.expanduser("~/tv-plugins"),
                cfg)
 _set_cfg_value('step_show', 'TV_STEP_SHOW', 100, cfg)
-_set_cfg_value('step_eval', 'TV_STEP_EVAL', 200, cfg)
+_set_cfg_value('step_eval', 'TV_STEP_EVAL', 500, cfg)
 _set_cfg_value('step_str',
                'TV_STEP_STR',
                ('Step {step}/{total_steps}: loss = {loss_value:.2f} '
