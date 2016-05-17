@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """Trains, evaluates and saves the model network using a queue."""
-# pylint: disable=missing-docstring
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -40,16 +40,21 @@ FLAGS = flags.FLAGS
 
 def _copy_parameters_to_traindir(hypes, input_file, target_name, target_dir):
     """
-    Helper to copy files defining the network to the saving dir.
+    Copy files defining the network to the saving dir.
+
+    This is used to ensure that a trained model can be used exactly the way
+    it was trained.
 
     Parameters
     ----------
+    hypes : dict
+        Hyperparameters
     input_file : str
-        name of source file
+        Name of source file.
     target_name : str
-        target name
-    traindir : str
-        directory where training data is saved
+        Name of the file being copied.
+    target_dir : str
+        Directory where training data is saved.
     """
     target_file = os.path.join(target_dir, target_name)
     input_file = os.path.join(hypes['dirs']['base_path'], input_file)
@@ -57,13 +62,16 @@ def _copy_parameters_to_traindir(hypes, input_file, target_name, target_dir):
 
 
 def initialize_training_folder(hypes):
-    """Creating the training folder and copy all model files into it.
+    """
+    Creating the training folder and copy all model files into it.
 
     The model will be executed from the training folder and all
     outputs will be saved there.
 
-    Args:
-      hypes: hypes
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
     """
     target_dir = os.path.join(hypes['dirs']['output_dir'], "model_files")
     if not os.path.exists(target_dir):
@@ -137,7 +145,8 @@ def write_precision_to_summary(precision, summary_writer, name, global_step,
 
 
 def do_eval(hypes, eval_correct, phase, sess):
-    """Run one evaluation against the full epoch of data.
+    """
+    Run one evaluation against the full epoch of data.
 
     Parameters
     ----------
@@ -152,7 +161,8 @@ def do_eval(hypes, eval_correct, phase, sess):
 
     Returns
     -------
-    TODO
+    float
+        The precision
     """
     # And run one epoch of eval.
 
@@ -179,7 +189,18 @@ def do_eval(hypes, eval_correct, phase, sess):
 
 
 def run_training(hypes):
-    """Train model for a number of steps."""
+    """
+    Train model for a number of steps.
+
+    This traines the model for at most hypes['solver']['max_steps'].
+
+    TODO: What is stored where?
+
+    Paramters
+    ---------
+    hypes : dict
+        Hyperparameters
+    """
     # Get the sets of images and labels for training, validation, and
     # test on MNIST.
 

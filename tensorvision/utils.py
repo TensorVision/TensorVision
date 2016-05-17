@@ -40,7 +40,16 @@ flags.DEFINE_string('gpus', None,
 
 
 def set_dirs(hypes, hypes_fname):
-    """Add directories into hypes."""
+    """
+    Add directories to hypes.
+
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+    hypes_fname : str
+        TODO
+    """
     if 'dirs' not in hypes:
         hypes['dirs'] = {}
 
@@ -122,7 +131,7 @@ _set_cfg_value('step_str',
 
 
 def load_plugins():
-    """Load all TV plugins."""
+    """Load all TensorVision plugins."""
     if os.path.isdir(cfg.plugin_dir):
         onlyfiles = [f for f in os.listdir(cfg.plugin_dir)
                      if os.path.isfile(os.path.join(cfg.plugin_dir, f))]

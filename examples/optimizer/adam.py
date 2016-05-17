@@ -6,8 +6,10 @@ import logging
 import sys
 import tensorflow as tf
 
+
 def training(H, loss, global_step):
-  """Sets up the training Ops.
+  """
+  Set up the training Ops.
 
   Creates a summarizer to track the loss over time in TensorBoard.
 
@@ -16,14 +18,16 @@ def training(H, loss, global_step):
   The Op returned by this function is what must be passed to the
   `sess.run()` call to cause the model to train.
 
-  Args:
-    loss: Loss tensor, from loss().
-    global_step: Integer Variable counting the number of training steps
+  Parameters
+  ----------
+  loss : Loss tensor, from loss().
+  global_step : Integer Variable counting the number of training steps
       processed.
-    learning_rate: The learning rate to use for gradient descent.
+  learning_rate : The learning rate to use for gradient descent.
 
-  Returns:
-    train_op: The Op for training.
+  Returns
+  -------
+  train_op: The Op for training.
   """
   # Add a scalar summary for the snapshot loss.
   with tf.name_scope('train'):

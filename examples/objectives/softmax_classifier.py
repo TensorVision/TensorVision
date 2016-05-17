@@ -6,27 +6,32 @@ import tensorflow as tf
 
 
 def decoder(hypes, logits):
-    """ Applies decoder to the logits
-
-    Args:
-      logits: Logits tensor, float - [batch_size, NUM_CLASSES].
-
-    Return:
-      logits: the logits are already decoded.
     """
+    Apply decoder to the logits.
 
+    Parameters
+    ----------
+    logits : Logits tensor, float - [batch_size, NUM_CLASSES].
+
+    Returns
+    -------
+    logits : the logits are already decoded.
+    """
     return logits
 
 
 def loss(hypes, logits, labels):
-    """Calculates the loss from the logits and the labels.
+    """
+    Calculate the loss from the logits and the labels.
 
-    Args:
-      logits: Logits tensor, float - [batch_size, NUM_CLASSES].
-      labels: Labels tensor, int32 - [batch_size].
+    Parameters
+    ----------
+    logits : Logits tensor, float - [batch_size, NUM_CLASSES].
+    labels : Labels tensor, int32 - [batch_size].
 
-    Returns:
-      loss: Loss tensor of type float.
+    Returns
+    -------
+    loss : Loss tensor of type float.
     """
     # Convert from sparse integer labels in the range [0, NUM_CLASSSES)
     # to 1-hot dense float vectors (that is we will have batch_size vectors,
@@ -55,13 +60,15 @@ def loss(hypes, logits, labels):
 def evaluation(hypes, logits, labels):
     """Evaluate the quality of the logits at predicting the label.
 
-    Args:
-      logits: Logits tensor, float - [batch_size, NUM_CLASSES].
-      labels: Labels tensor, int32 - [batch_size], with values in the
+    Parameters
+    ----------
+    logits: Logits tensor, float - [batch_size, NUM_CLASSES].
+    labels: Labels tensor, int32 - [batch_size], with values in the
         range [0, NUM_CLASSES).
 
-    Returns:
-      A scalar int32 tensor with the number of examples (out of batch_size)
+    Returns
+    -------
+    A scalar int32 tensor with the number of examples (out of batch_size)
       that were predicted correctly.
     """
     # For a classifier model, we can use the in_top_k Op.

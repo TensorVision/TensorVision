@@ -18,6 +18,7 @@ library as a developer.
   :maxdepth: 2
 
   user/installation
+  user/configuration
   user/tutorial
   user/development
 
@@ -30,7 +31,7 @@ method, this part of the documentation is for you.
 .. toctree::
   :maxdepth: 2
 
-  modules/train
+  modules/eval
   modules/utils
 
 Indices and tables

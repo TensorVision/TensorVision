@@ -1,3 +1,5 @@
+"""Minimal CNN for testing purposes."""
+
 import tensorflow as tf
 import re
 
@@ -30,10 +32,9 @@ def _activation_summary(x):
     Creates a summary that provides a histogram of activations.
     Creates a summary that measure the sparsity of activations.
 
-    Args:
-      x: Tensor
-    Returns:
-      nothing
+    Parameters
+    ----------
+    x : Tensor
     """
     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
     # session. This helps the clarity of presentation on tensorboard.
@@ -46,12 +47,14 @@ def _activation_summary(x):
 def inference(H, images, train=True):
     """Build the MNIST model up to where it may be used for inference.
 
-    Args:
-      images: Images placeholder, from inputs().
-      train: whether the network is used for train of inference
+    Parameters
+    ----------
+    images: Images placeholder, from inputs().
+    train: whether the network is used for train of inference
 
-    Returns:
-      softmax_linear: Output tensor with the computed logits.
+    Returns
+    -------
+    softmax_linear: Output tensor with the computed logits.
     """
     num_filter_1 = 32
     num_filter_2 = 64

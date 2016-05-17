@@ -3,6 +3,5 @@
 
 .. automodule:: tensorvision.utils
 
-.. autofunction:: get_train_dir
-.. autofunction:: placeholder_inputs
-.. autofunction:: fill_feed_dict
+.. autofunction:: set_dirs
+.. autofunction:: load_plugins
