@@ -135,20 +135,17 @@ def maybe_download_and_extract(hypes):
 def _write_precision_to_summary(precision, summary_writer, name, global_step,
                                 sess):
     """
-    TODO.
+    Write the precision to the summary file.
 
     Parameters
     ----------
-    precision : TODO
-        TODO
-    summary_writer : TODO
-        TODO
-    name : TODO
-        TODO
-    global_step : TODO
-        TODO
-    sess : TODO
-        TODO
+    precision : tensor
+    summary_writer : tf.train.SummaryWriter
+    name : string
+        Name of Operation to write
+    global_step : tensor or int
+        Xurrent training step
+    sess : tf.Session
     """
     # write result to summary
     summary = tf.Summary()
@@ -166,7 +163,7 @@ def build_training_graph(hypes, modules):
     hypes : dict
         Hyperparameters
     modules : tuble
-        the modules load in utils
+        The modules load in utils
 
     return:
         graph_ops
@@ -299,9 +296,10 @@ def do_training(hypes):
     """
     Train model for a number of steps.
 
-    This traines the model for at most hypes['solver']['max_steps'].
-
-    TODO: What is stored where?
+    This trains the model for at most hypes['solver']['max_steps'].
+    It shows an update every utils.cfg.step_show steps and writes
+    the model to hypes['dirs']['output_dir'] every utils.cfg.step_eval
+    steps.
 
     Paramters
     ---------

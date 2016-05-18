@@ -50,7 +50,7 @@ def set_dirs(hypes, hypes_fname):
     hypes : dict
         Hyperparameters
     hypes_fname : str
-        TODO
+        Path to hypes_file
     """
     if 'dirs' not in hypes:
         hypes['dirs'] = {}
@@ -164,12 +164,13 @@ def do_eval(hypes, eval_list, phase, sess):
     ----------
     hypes : dict
         Hyperparameters
-    eval_correct : TODO
-        The Tensor that returns the number of correct predictions.
-    sess : TODO
-        The session in which the model has been trained.
-    name : str
+    eval_list : list of tubles
+        Each tuble should contain a string (name if the metric) and a
+        tensor (storing the result of the metric)
+    phase : str
         Describes the data the evaluation is run on
+    sess : tf.Session
+        The session in which the model has been trained.
 
     Returns
     -------
