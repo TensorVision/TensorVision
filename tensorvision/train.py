@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """Trains, evaluates and saves the model network using a queue."""
-# pylint: disable=missing-docstring
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -34,6 +33,7 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 import tensorvision.utils as utils
+import tensorvision.core as core
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -58,7 +58,8 @@ def _copy_parameters_to_traindir(hypes, input_file, target_name, target_dir):
 
 
 def _start_enqueuing_threads(hypes, q, sess, data_input):
-    """Start the enqueuing threads of the data_input module.
+    """
+    Start the enqueuing threads of the data_input module.
 
     Parameters
     ----------
@@ -103,9 +104,9 @@ def initialize_training_folder(hypes):
 
     # TODO: read more about loggers and make file logging neater.
 
-    hypes_file = os.path.basename(tf.app.flags.FLAGS.hypes)
-    _copy_parameters_to_traindir(
-        hypes, hypes_file, "hypes.json", target_dir)
+    target_file = os.path.join(target_dir, 'hypes.json')
+    with open(target_file, 'w') as outfile:
+        json.dump(hypes, outfile, indent=2)
     _copy_parameters_to_traindir(
         hypes, hypes['model']['input_file'], "data_input.py", target_dir)
     _copy_parameters_to_traindir(
@@ -117,56 +118,25 @@ def initialize_training_folder(hypes):
         hypes, hypes['model']['optimizer_file'], "solver.py", target_dir)
 
 
-def maybe_download_and_extract(hypes):
-    """
-    Download the data if it isn't downloaded by now.
-
-    Parameters
-    ----------
-    hypes : dict
-        Hyperparameters
-    """
-    f = os.path.join(hypes['dirs']['base_path'], hypes['model']['input_file'])
-    data_input = imp.load_source("input", f)
-    if hasattr(data_input, 'maybe_download_and_extract'):
-        data_input.maybe_download_and_extract(hypes, hypes['dirs']['data_dir'])
-
-
-def _write_precision_to_summary(precision, summary_writer, name, global_step,
-                                sess):
-    """
-    Write the precision to the summary file.
-
-    Parameters
-    ----------
-    precision : tensor
-    summary_writer : tf.train.SummaryWriter
-    name : string
-        Name of Operation to write
-    global_step : tensor or int
-        Xurrent training step
-    sess : tf.Session
-    """
-    # write result to summary
-    summary = tf.Summary()
-    # summary.ParseFromString(sess.run(summary_op))
-    summary.value.add(tag='Evaluation/' + name + ' Precision',
-                      simple_value=precision)
-    summary_writer.add_summary(summary, global_step)
-
-
 def build_training_graph(hypes, modules):
-    """Run one evaluation against the full epoch of data.
+    """
+    Build the tensorflow graph out of the model files.
 
     Parameters
     ----------
     hypes : dict
         Hyperparameters
-    modules : tuble
-        The modules load in utils
+    modules : tuple
+        The modules load in utils.
 
-    return:
-        graph_ops
+    Returns
+    -------
+    tuple
+        (q, train_op, loss, eval_lists) where
+        q is a dict with keys 'train' and 'val' which includes queues,
+        train_op is a tensorflow op,
+        loss is a float,
+        eval_lists is a dict with keys 'train' and 'val'
     """
     data_input, arch, objective, solver = modules
 
@@ -174,7 +144,7 @@ def build_training_graph(hypes, modules):
 
     q, logits, decoder, = {}, {}, {}
     image_batch, label_batch = {}, {}
-    eval_dict = {}
+    eval_lists = {}
 
     # Add Input Producers to the Graph
     with tf.name_scope('Input'):
@@ -194,26 +164,67 @@ def build_training_graph(hypes, modules):
     train_op = solver.training(hypes, loss, global_step=global_step)
 
     # Add the Op to compare the logits to the labels during evaluation.
-    eval_dict['train'] = objective.evaluation(hypes, decoder['train'],
-                                              label_batch['train'])
+    eval_lists['train'] = objective.evaluation(hypes, decoder['train'],
+                                               label_batch['train'])
 
     # Validation Cycle to the Graph
     with tf.name_scope('Validation'):
-        q['val'] = data_input.create_queues(hypes, 'val')
-        input_batch = data_input.inputs(hypes, q['val'], 'val',
-                                        hypes['dirs']['data_dir'])
-        image_batch['val'], label_batch['val'] = input_batch
+        with tf.name_scope('Input'):
+            q['val'] = data_input.create_queues(hypes, 'val')
+            input_batch = data_input.inputs(hypes, q['val'], 'val',
+                                            hypes['dirs']['data_dir'])
+            image_batch['val'], label_batch['val'] = input_batch
 
-        tf.get_variable_scope().reuse_variables()
+            tf.get_variable_scope().reuse_variables()
 
         logits['val'] = arch.inference(hypes, image_batch['val'], 'val')
 
         decoder['val'] = objective.decoder(hypes, logits['val'])
 
-        eval_dict['val'] = objective.evaluation(hypes, decoder['val'],
-                                                label_batch['val'])
+        eval_lists['val'] = objective.evaluation(hypes, decoder['val'],
+                                                 label_batch['val'])
 
-    return q, train_op, loss, eval_dict
+    return q, train_op, loss, eval_lists
+
+
+def maybe_download_and_extract(hypes):
+    """
+    Download the data if it isn't downloaded by now.
+
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+    """
+    f = os.path.join(hypes['dirs']['base_path'], hypes['model']['input_file'])
+    data_input = imp.load_source("input", f)
+    if hasattr(data_input, 'maybe_download_and_extract'):
+        data_input.maybe_download_and_extract(hypes, hypes['dirs']['data_dir'])
+
+
+def _write_evaluation_to_summary(evaluation_results, summary_writer, phase,
+                                 global_step, sess):
+    """
+    Write the evaluation_results to the summary file.
+
+    Parameters
+    ----------
+    evaluation_results : tuple
+        The output of do_eval
+    summary_writer : tf.train.SummaryWriter
+    phase : string
+        Name of Operation to write
+    global_step : tensor or int
+        Xurrent training step
+    sess : tf.Session
+    """
+    # write result to summary
+    summary = tf.Summary()
+    eval_names, avg_results = evaluation_results
+    for name, result in zip(eval_names, avg_results):
+        summary.value.add(tag='Evaluation/' + phase + '/' + name,
+                          simple_value=result)
+    summary_writer.add_summary(summary, global_step)
 
 
 def _print_training_status(hypes, step, loss_value, start_time, sess_coll):
@@ -245,16 +256,16 @@ def _do_evaluation(hypes, step, sess_coll, eval_dict):
     sess, saver, summary_op, summary_writer, coord, threads = sess_coll
     logging.info('Doing Evaluate with Training Data.')
 
-    precision = utils.do_eval(hypes, eval_dict, phase='train',
-                              sess=sess)
-    _write_precision_to_summary(precision, summary_writer,
-                                "Train", step, sess)
+    eval_results = core.do_eval(hypes, eval_dict, phase='train',
+                                sess=sess)
+    _write_evaluation_to_summary(eval_results, summary_writer,
+                                 "Train", step, sess)
 
     logging.info('Doing Evaluation with Testing Data.')
-    precision = utils.do_eval(hypes, eval_dict, phase='val',
-                              sess=sess)
-    _write_precision_to_summary(precision, summary_writer,
-                                'val', step, sess)
+    eval_results = core.do_eval(hypes, eval_dict, phase='val',
+                                sess=sess)
+    _write_evaluation_to_summary(eval_results, summary_writer,
+                                 'val', step, sess)
 
 
 def run_training_step(hypes, step, start_time, graph_ops, sess_coll):
@@ -320,7 +331,7 @@ def do_training(hypes):
         q = graph_ops[0]
 
         # prepaire the tv session
-        sess_coll = utils.start_tv_session(hypes)
+        sess_coll = core.start_tv_session(hypes)
         sess, saver, summary_op, summary_writer, coord, threads = sess_coll
 
         # Start the data load
@@ -365,10 +376,10 @@ def main(_):
     utils.load_plugins()
     utils.set_dirs(hypes, tf.app.flags.FLAGS.hypes)
 
-    logging.info("Initialize Training Folder")
+    logging.info("Initialize training folder")
     initialize_training_folder(hypes)
     maybe_download_and_extract(hypes)
-    logging.info("Start Training")
+    logging.info("Start training")
     do_training(hypes)
 
 

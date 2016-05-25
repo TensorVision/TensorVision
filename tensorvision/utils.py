@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 
 import imp
+import json
 import logging
 import numpy as np
 import os
@@ -11,6 +12,8 @@ import time
 
 from datetime import datetime
 
+# https://github.com/tensorflow/tensorflow/issues/2034#issuecomment-220820070
+import numpy as np
 import tensorflow as tf
 
 # Basic model parameters as external flags.
@@ -93,41 +96,6 @@ def set_dirs(hypes, hypes_fname):
     return
 
 
-def start_tv_session(hypes):
-    """Run one evaluation against the full epoch of data.
-
-    Parameters
-    ----------
-    hypes : dict
-        Hyperparameters
-
-    return:
-        sess, saver, summary_op, summary_writer, threads
-    """
-    # Build the summary operation based on the TF collection of Summaries.
-    summary_op = tf.merge_all_summaries()
-
-    # Create a saver for writing training checkpoints.
-    saver = tf.train.Saver()
-
-    # Create a session for running Ops on the Graph.
-    sess = tf.Session()
-
-    # Run the Op to initialize the variables.
-    init = tf.initialize_all_variables()
-    sess.run(init)
-
-    # Start the queue runners.
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
-    # Instantiate a SummaryWriter to output summaries and the Graph.
-    summary_writer = tf.train.SummaryWriter(hypes['dirs']['output_dir'],
-                                            graph=sess.graph)
-
-    return sess, saver, summary_op, summary_writer, coord, threads
-
-
 def load_modules_from_hypes(hypes):
     """Load all modules from the files specified in hypes.
 
@@ -141,7 +109,7 @@ def load_modules_from_hypes(hypes):
 
     Returns
     -------
-    data_input, arch, objective, solver
+    hypes, data_input, arch, objective, solver
     """
     base_path = hypes['dirs']['base_path']
     f = os.path.join(base_path, hypes['model']['input_file'])
@@ -156,61 +124,57 @@ def load_modules_from_hypes(hypes):
     return data_input, arch, objective, solver
 
 
-def do_eval(hypes, eval_list, phase, sess):
-    """
-    Run one evaluation against the full epoch of data.
+def load_modules_from_logdir(logdir):
+    """Load hypes from the logdir.
+
+    Namely the modules loaded are:
+    input_file, architecture_file, objective_file, optimizer_file
 
     Parameters
     ----------
-    hypes : dict
-        Hyperparameters
-    eval_list : list of tubles
-        Each tuble should contain a string (name if the metric) and a
-        tensor (storing the result of the metric)
-    phase : str
-        Describes the data the evaluation is run on
-    sess : tf.Session
-        The session in which the model has been trained.
+    logdir : string
+        Path to logdir
 
     Returns
     -------
-    float
-        The precision
+    data_input, arch, objective, solver
     """
-    # And run one epoch of eval.
-    # Checking for List for compability
-    if type(eval_list[phase]) is list:
-        eval_names, eval_op = zip(*eval_list[phase])
+    model_dir = os.path.join(logdir, "model_files")
+    f = os.path.join(model_dir, "data_input.py")
+    # TODO: create warning if file f does not exists
+    data_input = imp.load_source("input", f)
+    f = os.path.join(model_dir, "architecture.py")
+    arch = imp.load_source("arch", f)
+    f = os.path.join(model_dir, "objective.py")
+    objective = imp.load_source("objective", f)
+    f = os.path.join(model_dir, "solver.py")
+    solver = imp.load_source("solver", f)
 
-    else:
-        logging.warning("Passing eval_op directly is deprecated."
-                        "Pass a list of tubles instead.")
-        eval_names = ['Accuracy']
-        eval_op = [eval_list[phase]]
+    return data_input, arch, objective, solver
 
-    assert(len(eval_names) == len(eval_op))
 
-    if phase == 'train':
-        num_examples = hypes['data']['num_examples_per_epoch_for_train']
-    if phase == 'val':
-        num_examples = hypes['data']['num_examples_per_epoch_for_eval']
+def load_hypes_from_logdir(logdir):
+    """Load hypes from the logdir.
 
-    steps_per_epoch = num_examples // hypes['solver']['batch_size']
-    num_examples = steps_per_epoch * hypes['solver']['batch_size']
+    Namely the modules loaded are:
+    input_file, architecture_file, objective_file, optimizer_file
 
-    logging.info('Data: % s  Num examples: % d ' % (phase, num_examples))
-    # run evaluation on num_examples many images
-    results = sess.run(eval_op)
-    logging.debug('Output of eval: %s', results)
-    for step in xrange(1, steps_per_epoch):
-        results = map(np.add, results, sess.run(eval_op))
+    Parameters
+    ----------
+    logdir : string
+        Path to logdir
 
-    avg_results = [result / steps_per_epoch for result in results]
+    Returns
+    -------
+    hypes
+    """
+    hypes_fname = os.path.join(logdir, "model_files/hypes.json")
+    with open(hypes_fname, 'r') as f:
+        logging.info("f: %s", f)
+        hypes = json.load(f)
+    hypes['dirs']['base_path'] = logdir
 
-    for name, value in zip(eval_names, avg_results):
-        logging.info('%s : % 0.04f ' % (name, value))
-
-    return avg_results[0]  # TODO
+    return hypes
 
 
 # Add basic configuration

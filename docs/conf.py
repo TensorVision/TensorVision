@@ -30,7 +30,7 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    # 'sphinx.ext.intersphinx',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.mathjax',
@@ -301,4 +301,8 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
+intersphinx_mapping = {'http://docs.python.org/': None,
+                       'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+                       # 'tf': ('https://www.tensorflow.org/api_docs/python/',
+                       #        None)
+                       }

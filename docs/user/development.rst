@@ -153,6 +153,15 @@ Finally, for a loop-on-failing mode, do ``pip install pytest-xdist`` and run
 ``py.test -f``. This will pause after the run, wait for any source file to
 change and run all previously failing tests again.
 
+Before commiting any change, you should run
+
+.. code:: bash
+
+    tv-train --hypes examples/cifar10_minimal.json
+    tv-analyze --hypes examples/cifar10_minimal.json --logdir examples/RUNS/debug/
+
+to see if everything still works as expected.
+
 
 Sending Pull Requests
 ~~~~~~~~~~~~~~~~~~~~~

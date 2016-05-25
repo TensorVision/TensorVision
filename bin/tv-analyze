@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Trains, evaluates and saves the model network using a queue."""
+"""Evaluates the model."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -9,6 +9,7 @@ from __future__ import print_function
 import logging
 import os
 import sys
+
 
 # configure logging
 if 'TV_IS_DEV' in os.environ and os.environ['TV_IS_DEV']:
@@ -27,9 +28,8 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-
 # Do not remove; importing main is necessary for tf.app.run
-from tensorvision.train import main
+from tensorvision.analyze import main
 
 
 if __name__ == '__main__':
