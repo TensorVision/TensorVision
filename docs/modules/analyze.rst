@@ -4,3 +4,9 @@
 .. automodule:: tensorvision.analyze
 
 .. autofunction:: do_analyze
+.. autofunction:: get_confusion_matrix
+.. autofunction:: get_accuracy
+.. autofunction:: get_mean_accuracy
+.. autofunction:: get_mean_iou
+.. autofunction:: get_frequency_weighted_iou
+.. autofunction:: merge_cms
