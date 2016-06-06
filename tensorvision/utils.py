@@ -6,14 +6,14 @@ from __future__ import print_function
 import imp
 import json
 import logging
+# https://github.com/tensorflow/tensorflow/issues/2034#issuecomment-220820070
 import numpy as np
 import os
+import sys
 import time
 
 from datetime import datetime
 
-# https://github.com/tensorflow/tensorflow/issues/2034#issuecomment-220820070
-import numpy as np
 import tensorflow as tf
 
 # Basic model parameters as external flags.
@@ -112,6 +112,7 @@ def load_modules_from_hypes(hypes):
     hypes, data_input, arch, objective, solver
     """
     base_path = hypes['dirs']['base_path']
+    _add_paths_to_sys(hypes)
     f = os.path.join(base_path, hypes['model']['input_file'])
     data_input = imp.load_source("input", f)
     f = os.path.join(base_path, hypes['model']['architecture_file'])
@@ -122,6 +123,23 @@ def load_modules_from_hypes(hypes):
     solver = imp.load_source("solver", f)
 
     return data_input, arch, objective, solver
+
+
+def _add_paths_to_sys(hypes):
+    '''Add all module dirs to syspath.
+
+    This adds the dirname of all modules to path.
+
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+    '''
+    base_path = hypes['dirs']['base_path']
+    for module in hypes['model'].values():
+        path = os.path.join(base_path, module)
+        sys.path.append(os.path.dirname(path))
+    return
 
 
 def load_modules_from_logdir(logdir):
@@ -172,6 +190,7 @@ def load_hypes_from_logdir(logdir):
     with open(hypes_fname, 'r') as f:
         logging.info("f: %s", f)
         hypes = json.load(f)
+    _add_paths_to_sys(hypes)
     hypes['dirs']['base_path'] = logdir
 
     return hypes
