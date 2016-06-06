@@ -49,7 +49,9 @@ def _load_weights(checkpoint_dir, sess, saver):
     ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
     if ckpt and ckpt.model_checkpoint_path:
         logging.info(ckpt.model_checkpoint_path)
-        saver.restore(sess, ckpt.model_checkpoint_path)
+        file = os.path.basename(ckpt.model_checkpoint_path)
+        checkpoint_path = os.path.join(checkpoint_dir, file)
+        saver.restore(sess, checkpoint_path)
 
 
 def do_analyze(logdir):

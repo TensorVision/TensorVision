@@ -36,7 +36,8 @@ tests_require = ['mock',
                  'pytest-pep8',
                  ]
 
-scripts = ['bin/tv-train']
+scripts = ['bin/tv-train',
+           'bin/tv-analyze']
 
 setup(
     name="tensorvision",
@@ -64,4 +65,4 @@ setup(
     zip_safe=False,
     install_requires=install_requires,
     extras_require={'testing': tests_require, },
-    )
+)
