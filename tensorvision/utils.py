@@ -6,13 +6,15 @@ from __future__ import print_function
 import imp
 import json
 import logging
-# https://github.com/tensorflow/tensorflow/issues/2034#issuecomment-220820070
-import numpy as np
 import os
-import sys
-import time
 
 from datetime import datetime
+import matplotlib.cm as cm
+
+# https://github.com/tensorflow/tensorflow/issues/2034#issuecomment-220820070
+import numpy as np
+import scipy
+import sys
 
 import tensorflow as tf
 
@@ -126,7 +128,8 @@ def load_modules_from_hypes(hypes):
 
 
 def _add_paths_to_sys(hypes):
-    '''Add all module dirs to syspath.
+    """
+    Add all module dirs to syspath.
 
     This adds the dirname of all modules to path.
 
@@ -134,7 +137,7 @@ def _add_paths_to_sys(hypes):
     ----------
     hypes : dict
         Hyperparameters
-    '''
+    """
     base_path = hypes['dirs']['base_path']
     for module in hypes['model'].values():
         path = os.path.join(base_path, module)
@@ -246,3 +249,92 @@ def load_plugins():
             logging.info('Loaded plugin "%s".', pyfile)
             imp.load_source(os.path.splitext(os.path.basename(pyfile))[0],
                             pyfile)
+
+
+def overlay_segmentation(input_image, segmentation, color_dict):
+    """
+    Overlay input_image with a hard segmentation result.
+
+    Store the result with the same name as segmentation_image, but with
+    `-overlay`.
+
+    Parameters
+    ----------
+    input_image : numpy.array
+        An image of shape [width, height, 3].
+    segmentation : numpy.array
+        Segmentation of shape [width, height].
+    color_changes : dict
+        The key is the class and the value is the color which will be used in
+        the overlay. Each color has to be a tuple (r, g, b, a) with
+        r, g, b, a in {0, 1, ..., 255}.
+        It is recommended to choose a = 0 for (invisible) background and
+        a = 127 for all other classes.
+
+    Returns
+    -------
+    numpy.array
+        The image overlayed with the segmenation
+    """
+    width, height = segmentation.shape
+    output = scipy.misc.toimage(segmentation)
+    output = output.convert('RGBA')
+    for x in range(0, width):
+        for y in range(0, height):
+            print(segmentation[x, y])
+            if segmentation[x, y] in color_dict:
+                output.putpixel((y, x), color_dict[segmentation[x, y]])
+            elif 'default' in color_dict:
+                output.putpixel((y, x), color_dict['default'])
+
+    background = scipy.misc.toimage(input_image)
+    background.paste(output, box=None, mask=output)
+
+    return np.array(background)
+
+
+def soft_overlay_segmentation(input_image,
+                              seg_probability,
+                              colormap=None,
+                              alpha=0.4):
+    """
+    Overlay image with propability map.
+
+    Overlays the image with a colormap ranging
+    from blue to red according to the probability map
+    given in gt_prob. This is good to analyse the segmentation
+    result of a single class.
+
+    Parameters
+    ----------
+    input_image : numpy.array
+        Image of shape [width, height, 3]
+    seg_probability : numpy.array
+        Propability map for one class with shape [width, height]
+    colormap : matplotlib colormap object
+        Defines which floats get which color
+    alpha : float
+        How strong is the overlay compared to the input image
+
+
+    Returns
+    -------
+    numpy.array
+        Soft overlay of the input image with a propability map of shape
+        [width, height, 3]
+
+    Notes
+    -----
+    See `Matplotlib reference
+    <http://matplotlib.org/examples/color/colormaps_reference.html>`_
+    for more colormaps.
+    """
+    assert alpha >= 0.0
+    assert alpha <= 1.0
+    if colormap is None:
+        colormap = cm.get_cmap('bwr')
+
+    overimage = colormap(seg_probability, bytes=True)
+    output = alpha * overimage[:, :, 0:3] + (1.0 - alpha) * input_image
+
+    return output
