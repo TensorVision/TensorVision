@@ -281,7 +281,6 @@ def overlay_segmentation(input_image, segmentation, color_dict):
     output = output.convert('RGBA')
     for x in range(0, width):
         for y in range(0, height):
-            print(segmentation[x, y])
             if segmentation[x, y] in color_dict:
                 output.putpixel((y, x), color_dict[segmentation[x, y]])
             elif 'default' in color_dict:
