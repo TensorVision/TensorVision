@@ -37,7 +37,8 @@ tests_require = ['mock',
                  ]
 
 scripts = ['bin/tv-train',
-           'bin/tv-analyze']
+           'bin/tv-analyze',
+           'bin/tv-continue']
 
 setup(
     name="tensorvision",

@@ -195,8 +195,36 @@ def load_hypes_from_logdir(logdir):
         hypes = json.load(f)
     _add_paths_to_sys(hypes)
     hypes['dirs']['base_path'] = logdir
+    hypes['dirs']['output_dir'] = logdir
 
     return hypes
+
+
+def create_filewrite_handler(logging_file, mode='w'):
+    """
+    Creates a filewriter handler.
+
+    A copy of the output will be written to logging_file.
+
+    Parameters
+    ----------
+    logging_file : string
+        File to log output
+
+    Returns
+    ----------
+    The filewriter handler
+    """
+    target_dir = os.path.dirname(logging_file)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    filewriter = logging.FileHandler(logging_file, mode=mode)
+    formatter = logging.Formatter(
+        '%(asctime)s %(name)-3s %(levelname)-3s %(message)s')
+    filewriter.setLevel(logging.INFO)
+    filewriter.setFormatter(formatter)
+    logging.getLogger('').addHandler(filewriter)
+    return filewriter
 
 
 # Add basic configuration
@@ -228,8 +256,10 @@ _set_cfg_value('plugin_dir',
                'TV_PLUGIN_DIR',
                os.path.expanduser("~/tv-plugins"),
                cfg)
-_set_cfg_value('step_show', 'TV_STEP_SHOW', 100, cfg)
-_set_cfg_value('step_eval', 'TV_STEP_EVAL', 500, cfg)
+_set_cfg_value('step_show', 'TV_STEP_SHOW', 50, cfg)
+_set_cfg_value('step_eval', 'TV_STEP_EVAL', 250, cfg)
+_set_cfg_value('step_write', 'TV_STEP_WRITE', 1000, cfg)
+_set_cfg_value('max_to_keep', 'TV_MAX_KEEP', 10, cfg)
 _set_cfg_value('step_str',
                'TV_STEP_STR',
                ('Step {step}/{total_steps}: loss = {loss_value:.2f} '

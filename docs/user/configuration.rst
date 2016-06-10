@@ -20,7 +20,10 @@ The supported variables are:
   can be specified using ``--gpus``. Setting ``TV_USE_GPUS='force'`` makes the
   flag ``--gpus`` compulsory, this is useful in cluster environoments. Use
   ``TV_USE_GPUS='0,3'`` to run Tensorflow an the GPUs with ids 0 and 3.
-* ``TV_STEP_SHOW``: After how many epochs of training shot the ``TV_STEP_STR`` be printed?
+* ``TV_STEP_SHOW``: After how many epochs of training should the ``TV_STEP_STR`` be printed?
+* ``TV_STEP_EVAL``: After how many epochs of training evaluation is done.
+* ``TV_STEP_WRITE``: After how many epochs of training checkpoints are written to disk.
+* ``TV_MAX_KEEP``: How many checkpoints to keep.
 * ``TV_STEP_STR``: Set what you want to see each 100th step of the training.
   The default is
 

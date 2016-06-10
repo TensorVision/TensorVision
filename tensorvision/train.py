@@ -95,12 +95,7 @@ def initialize_training_folder(hypes):
     # Creating an additional logging saving the console outputs
     # into the training folder
     logging_file = os.path.join(hypes['dirs']['output_dir'], "output.log")
-    filewriter = logging.FileHandler(logging_file, mode='w')
-    formatter = logging.Formatter(
-        '%(asctime)s %(name)-3s %(levelname)-3s %(message)s')
-    filewriter.setLevel(logging.INFO)
-    filewriter.setFormatter(formatter)
-    logging.getLogger('').addHandler(filewriter)
+    utils.create_filewrite_handler(logging_file)
 
     # TODO: read more about loggers and make file logging neater.
 
@@ -284,19 +279,19 @@ def run_training_step(hypes, step, start_time, graph_ops, sess_coll):
         # Reset timer
         start_time = time.time()
 
-    # Save a checkpoint and evaluate the model periodically.
-    if (step + 1) % int(utils.cfg.step_eval) == 0 or \
-       (step + 1) == hypes['solver']['max_steps']:
-        # write checkpoint to disk
-        _write_checkpoint_to_disk(hypes, step, sess_coll)
-        # Reset timer
-        start_time = time.time()
-
     # Do a evaluation and print the current state
     if (step + 1) % int(utils.cfg.step_eval) == 0 or \
        (step + 1) == hypes['solver']['max_steps']:
         # write checkpoint to disk
         _do_evaluation(hypes, step, sess_coll, eval_dict)
+        # Reset timer
+        start_time = time.time()
+
+    # Save a checkpoint periodically.
+    if (step + 1) % int(utils.cfg.step_write) == 0 or \
+       (step + 1) == hypes['solver']['max_steps']:
+        # write checkpoint to disk
+        _write_checkpoint_to_disk(hypes, step, sess_coll)
         # Reset timer
         start_time = time.time()
 
@@ -340,6 +335,54 @@ def do_training(hypes):
         # And then after everything is built, start the training loop.
         start_time = time.time()
         for step in xrange(hypes['solver']['max_steps']):
+            start_time = run_training_step(hypes, step, start_time,
+                                           graph_ops, sess_coll)
+
+        # stopping input Threads
+        coord.request_stop()
+        coord.join(threads)
+
+
+def continue_training(logdir):
+    """
+    Continues training of a model.
+
+    This will load model files and weights found in logdir and continues
+    an aborted training.
+
+    Parameters
+    ----------
+    logdir : string
+        Directory with logs.
+    """
+    hypes = utils.load_hypes_from_logdir(logdir)
+    modules = utils.load_modules_from_logdir(logdir)
+    data_input, arch, objective, solver = modules
+
+    # append output to output.log
+    logging_file = os.path.join(logdir, 'output.log')
+    utils.create_filewrite_handler(logging_file, mode='a')
+
+    # Tell TensorFlow that the model will be built into the default Graph.
+    with tf.Graph().as_default() as graph:
+
+        # build the graph based on the loaded modules
+        graph_ops = build_training_graph(hypes, modules)
+        q = graph_ops[0]
+
+        # prepaire the tv session
+        sess_coll = core.start_tv_session(hypes)
+        sess, saver, summary_op, summary_writer, coord, threads = sess_coll
+
+        # Load weights from logdir
+        cur_step = core.load_weights(logdir, sess, saver)
+
+        # Start the data load
+        _start_enqueuing_threads(hypes, q, sess, data_input)
+
+        # And then after everything is built, start the training loop.
+        start_time = time.time()
+        for step in xrange(cur_step+1, hypes['solver']['max_steps']):
             start_time = run_training_step(hypes, step, start_time,
                                            graph_ops, sess_coll)
 

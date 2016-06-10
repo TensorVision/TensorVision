@@ -8,8 +8,37 @@ from __future__ import print_function
 
 import logging
 
+import os
 import numpy as np
 import tensorflow as tf
+
+import tensorvision.utils as utils
+
+
+def load_weights(checkpoint_dir, sess, saver):
+    """
+    Load the weights of a model stored in saver.
+
+    Parameters
+    ----------
+    checkpoint_dir : str
+        The directory of checkpoints.
+    sess : tf.Session
+        A Session to use to restore the parameters.
+    saver : tf.train.Saver
+
+    Returns
+    -----------
+    int
+        training step of checkpoint
+    """
+    ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        logging.info(ckpt.model_checkpoint_path)
+        file = os.path.basename(ckpt.model_checkpoint_path)
+        checkpoint_path = os.path.join(checkpoint_dir, file)
+        saver.restore(sess, checkpoint_path)
+        return int(file.split('-')[1])
 
 
 def build_graph(hypes, modules, train=True):
@@ -108,7 +137,12 @@ def start_tv_session(hypes):
     summary_op = tf.merge_all_summaries()
 
     # Create a saver for writing training checkpoints.
-    saver = tf.train.Saver()
+    if 'keep_checkpoint_every_n_hours' in hypes['solver']:
+        kc = hypes['solver']['keep_checkpoint_every_n_hours']
+    else:
+        kc = 10000.0
+    saver = tf.train.Saver(max_to_keep=utils.cfg.max_to_keep,
+                           keep_checkpoint_every_n_hours=kc)
 
     # Create a session for running Ops on the Graph.
     sess = tf.Session()
