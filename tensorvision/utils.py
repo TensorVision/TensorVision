@@ -139,8 +139,12 @@ def _add_paths_to_sys(hypes):
     """
     base_path = hypes['dirs']['base_path']
     for module in hypes['model'].values():
-        path = os.path.join(base_path, module)
+        path = os.path.realpath(os.path.join(base_path, module))
         sys.path.append(os.path.dirname(path))
+    if 'path' in hypes:
+            for path in hypes['path']:
+                path = os.path.realpath(os.path.join(base_path, path))
+                sys.path.append(path)
     return
 
 
