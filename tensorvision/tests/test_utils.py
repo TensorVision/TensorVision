@@ -9,6 +9,13 @@ def test_set_dirs():
         hypes = json.load(f)
 
     from tensorvision.utils import set_dirs
+    import tensorflow as tf
+    flags = tf.app.flags
+    flags.DEFINE_string('name', 'debug',
+                        'Append a name Tag to run.')
+
+    tf.app.flags.DEFINE_boolean(
+        'save', True, (''))
 
     set_dirs(hypes, hype_file)
 

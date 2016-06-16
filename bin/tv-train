@@ -27,6 +27,23 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
+flags.DEFINE_string('name', None,
+                    'Append a name Tag to run.')
+
+flags.DEFINE_string('hypes', None,
+                    'File storing model parameters.')
+
+if 'TV_SAVE' in os.environ and os.environ['TV_SAVE']:
+    tf.app.flags.DEFINE_boolean(
+        'save', True, ('Whether to save the run. In case --nosave (default) '
+                       'output will be saved to the folder TV_DIR_RUNS/debug, '
+                       'hence it will get overwritten by further runs.'))
+else:
+    tf.app.flags.DEFINE_boolean(
+        'save', False, ('Whether to save the run. In case --nosave (default) '
+                        'output will be saved to the folder TV_DIR_RUNS/debug '
+                        'hence it will get overwritten by further runs.'))
+
 
 # Do not remove; importing main is necessary for tf.app.run
 from tensorvision.train import main

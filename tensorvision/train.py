@@ -398,24 +398,11 @@ def main(_):
         logging.error("Usage: tv-train --hypes hypes.json")
         exit(1)
 
-    if FLAGS.gpus is None:
-        if 'TV_USE_GPUS' in os.environ:
-            if os.environ['TV_USE_GPUS'] == 'force':
-                logging.error('Please specify a GPU.')
-                logging.error('Usage tv-train --gpus <ids>')
-                exit(1)
-            else:
-                gpus = os.environ['TV_USE_GPUS']
-                logging.info("GPUs are set to: %s", gpus)
-                os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-    else:
-        logging.info("GPUs are set to: %s", FLAGS.gpus)
-        os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpus
-
     with open(tf.app.flags.FLAGS.hypes, 'r') as f:
         logging.info("f: %s", f)
         hypes = json.load(f)
 
+    utils.set_gpus_to_use()
     utils.load_plugins()
     utils.set_dirs(hypes, tf.app.flags.FLAGS.hypes)
 

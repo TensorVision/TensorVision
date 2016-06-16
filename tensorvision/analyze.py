@@ -295,20 +295,7 @@ def main(_):
         logging.error("Usage: tv-analyze --logdir dir")
         exit(1)
 
-    if FLAGS.gpus is None:
-        if 'TV_USE_GPUS' in os.environ:
-            if os.environ['TV_USE_GPUS'] == 'force':
-                logging.error('Please specify a GPU.')
-                logging.error('Usage tv-train --gpus <ids>')
-                exit(1)
-            else:
-                gpus = os.environ['TV_USE_GPUS']
-                logging.info("GPUs are set to: %s", gpus)
-                os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-    else:
-        logging.info("GPUs are set to: %s", FLAGS.gpus)
-        os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpus
-
+    utils.set_gpus_to_use()
     utils.load_plugins()
 
     logging.info("Starting to analyze model in '%s'", FLAGS.logdir)

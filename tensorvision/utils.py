@@ -22,24 +22,6 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-if 'TV_SAVE' in os.environ and os.environ['TV_SAVE']:
-    tf.app.flags.DEFINE_boolean(
-        'save', True, ('Whether to save the run. In case --nosave (default) '
-                       'output will be saved to the folder TV_DIR_RUNS/debug, '
-                       'hence it will get overwritten by further runs.'))
-else:
-    tf.app.flags.DEFINE_boolean(
-        'save', False, ('Whether to save the run. In case --nosave (default) '
-                        'output will be saved to the folder TV_DIR_RUNS/debug '
-                        'hence it will get overwritten by further runs.'))
-
-
-flags.DEFINE_string('name', None,
-                    'Append a name Tag to run.')
-
-# usage: train.py --config=my_model_params.py
-flags.DEFINE_string('hypes', None,
-                    'File storing model parameters.')
 
 flags.DEFINE_string('gpus', None,
                     ('Which gpus to use. For multiple GPUs use comma seperated'
@@ -96,6 +78,23 @@ def set_dirs(hypes, hypes_fname):
         hypes['dirs']['data_dir'] = data_dir
 
     return
+
+
+def set_gpus_to_use():
+    """Set the gpus to use."""
+    if FLAGS.gpus is None:
+        if 'TV_USE_GPUS' in os.environ:
+            if os.environ['TV_USE_GPUS'] == 'force':
+                logging.error('Please specify a GPU.')
+                logging.error('Usage tv-train --gpus <ids>')
+                exit(1)
+            else:
+                gpus = os.environ['TV_USE_GPUS']
+                logging.info("GPUs are set to: %s", gpus)
+                os.environ['CUDA_VISIBLE_DEVICES'] = gpus
+    else:
+        logging.info("GPUs are set to: %s", FLAGS.gpus)
+        os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpus
 
 
 def load_modules_from_hypes(hypes):
