@@ -2,6 +2,9 @@ Models/*
 
 .idea/
 
+#test output
+tensorvision/tests/*.png
+
 # Model Stuff
 examples/RUNS
 examples/DATA
