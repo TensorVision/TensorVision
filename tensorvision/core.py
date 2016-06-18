@@ -141,7 +141,7 @@ def start_tv_session(hypes):
         kc = hypes['solver']['keep_checkpoint_every_n_hours']
     else:
         kc = 10000.0
-    saver = tf.train.Saver(max_to_keep=utils.cfg.max_to_keep,
+    saver = tf.train.Saver(max_to_keep=int(utils.cfg.max_to_keep),
                            keep_checkpoint_every_n_hours=kc)
 
     # Create a session for running Ops on the Graph.
