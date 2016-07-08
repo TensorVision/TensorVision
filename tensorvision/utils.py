@@ -56,14 +56,18 @@ def set_dirs(hypes, hypes_fname):
         else:
             runs_dir = os.path.join(base_path, 'RUNS')
 
+        # test for project dir
+        if hasattr(FLAGS, 'project') and FLAGS.project is not None:
+            runs_dir = os.path.join(runs_dir, FLAGS.project)
+
         if not FLAGS.save and FLAGS.name is None:
             output_dir = os.path.join(runs_dir, 'debug')
         else:
             json_name = hypes_fname.split('/')[-1].replace('.json', '')
             date = datetime.now().strftime('%Y_%m_%d_%H.%M')
-            run_name = '%s_%s' % (json_name, date)
             if FLAGS.name is not None:
-                run_name = run_name + "_" + FLAGS.name
+                json_name = FLAGS.name + "_" + json_name
+            run_name = '%s_%s' % (json_name, date)
             output_dir = os.path.join(runs_dir, run_name)
 
         hypes['dirs']['output_dir'] = output_dir
