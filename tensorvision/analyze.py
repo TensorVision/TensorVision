@@ -250,6 +250,58 @@ def get_frequency_weighted_iou(n):
     return a * b
 
 
+def get_precision(n):
+    """
+    Get precision.
+
+    Parameters
+    ----------
+    n : dict
+        Confusion matrix which has integer keys 0, ..., nb_classes - 1;
+        an entry n[i][j] is the count how often class i was classified as
+        class j.
+
+    Returns
+    -------
+    float
+        precision (in [0, 1])
+
+    Examples
+    --------
+    >>> n = {0: {0: 10, 1: 2}, 1: {0: 5, 1: 83}}
+    >>> get_precision(n)
+    0.9764705882352941
+    """
+    assert len(n) == 2, "Precision is only defined for binary problems"
+    return float(n[1][1]) / (n[0][1] + n[1][1])
+
+
+def get_recall(n):
+    """
+    Get recall.
+
+    Parameters
+    ----------
+    n : dict
+        Confusion matrix which has integer keys 0, ..., nb_classes - 1;
+        an entry n[i][j] is the count how often class i was classified as
+        class j.
+
+    Returns
+    -------
+    float
+        recall (in [0, 1])
+
+    Examples
+    --------
+    >>> n = {0: {0: 10, 1: 2}, 1: {0: 5, 1: 83}}
+    >>> get_recall(n)
+    0.9431818181818182
+    """
+    assert len(n) == 2, "Recall is only defined for binary problems"
+    return float(n[1][1]) / (n[1][0] + n[1][1])
+
+
 def merge_cms(cm1, cm2):
     """
     Merge two confusion matrices.

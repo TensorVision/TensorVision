@@ -42,6 +42,20 @@ def test_get_frequency_weighted_iou():
     assert abs(get_frequency_weighted_iou(n) - 0.8821437908496732) <= 0.0001
 
 
+def test_get_precision():
+    """Test if get_precision works."""
+    from tensorvision.analyze import get_precision
+    n = {0: {0: 10, 1: 2}, 1: {0: 5, 1: 83}}
+    assert abs(get_precision(n) - 0.9764705882352941) <= 0.0001
+
+
+def test_get_recall():
+    """Test if get_recall works."""
+    from tensorvision.analyze import get_recall
+    n = {0: {0: 10, 1: 2}, 1: {0: 5, 1: 83}}
+    assert abs(get_recall(n) - 0.9431818181818182) <= 0.0001
+
+
 def test_merge_cms():
     """Test if merge_cms works."""
     from tensorvision.analyze import merge_cms

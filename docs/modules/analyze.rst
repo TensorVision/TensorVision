@@ -9,4 +9,6 @@
 .. autofunction:: get_mean_accuracy
 .. autofunction:: get_mean_iou
 .. autofunction:: get_frequency_weighted_iou
+.. autofunction:: get_precision
+.. autofunction:: get_recall
 .. autofunction:: merge_cms
