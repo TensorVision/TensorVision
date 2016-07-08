@@ -68,3 +68,22 @@ def test_soft_overlay_segmentation():
     img1 = scipy.ndimage.imread(correct_path)
     img2 = scipy.ndimage.imread(target_path)
     assert np.array_equal(img1, img2)
+
+
+def test_load_segmentation_mask():
+    """Test load_segmentation_mask."""
+    from tensorvision.utils import load_segmentation_mask
+    import json
+    import scipy.misc
+    import numpy
+    import os
+    hypes_path = os.path.abspath('tensorvision/tests/croco.json')
+    seg_image = os.path.abspath('tensorvision/tests/croco-mask.png')
+    with open(hypes_path) as f:
+        hypes = json.load(f)
+    gt = load_segmentation_mask(hypes, seg_image)
+    # scipy.misc.imsave("tensorvision/tests/test-generated-mask.png", gt)
+    seg_image = 'tensorvision/tests/Crocodylus-johnsoni-3-mask.png'
+    true_gt = (scipy.misc.imread(seg_image) / 255.).astype(int)
+    numpy.testing.assert_array_equal(true_gt, gt)
+    assert gt.shape == (480, 640)

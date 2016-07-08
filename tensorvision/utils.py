@@ -1,4 +1,4 @@
-"""Utils for TensorVision."""
+"""Utility functions for TensorVision."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -15,6 +15,7 @@ import matplotlib.cm as cm
 import numpy as np
 import scipy
 import sys
+import struct
 
 import tensorflow as tf
 
@@ -209,7 +210,7 @@ def load_hypes_from_logdir(logdir):
 
 def create_filewrite_handler(logging_file, mode='w'):
     """
-    Creates a filewriter handler.
+    Create a filewriter handler.
 
     A copy of the output will be written to logging_file.
 
@@ -219,7 +220,7 @@ def create_filewrite_handler(logging_file, mode='w'):
         File to log output
 
     Returns
-    ----------
+    -------
     The filewriter handler
     """
     target_dir = os.path.dirname(logging_file)
@@ -374,3 +375,153 @@ def soft_overlay_segmentation(input_image,
     output = alpha * overimage[:, :, 0:3] + (1.0 - alpha) * input_image
 
     return output
+
+
+def get_color2class(hypes):
+    """
+    Load dictionary which maps colors to classes as well as the default class.
+
+    The classes are integers with values which range from 0 to N-1, where N is
+    the total number of classes.
+
+    This requires hypes to have an entry "classes". This entry has to be a list
+    of dictionaries with key `colors`. This key is a list of HTML color strings
+    in RGB format.
+
+    ```
+    "classes": [
+      {"name": "road",
+       "colors": ["#ff0000", "#ff1000"],
+       "output": "#00ff007f"},
+      {"name": "background",
+       "colors": ["default", "#ff0000"],
+       "output": "#ff00007f"},
+      {"name": "ignore",
+       "colors": ["#000000"]}
+    ],
+    ```
+
+    The string `default` in the color list may only be in one class. If there
+    are colors which are not mapped to any other class, the class with
+    "default" gets assigned.
+
+    The index of the dictionary in the list is the value of the integer matrix
+    which is returned.
+
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+
+    Returns
+    -------
+    tuple
+        (color2class_dict, default_class) where default_class can be None.
+        The dictionary `color2class_dict` maps (R, G, B) tuples to class labels
+        (ints).
+    """
+    color2class_dict = {}
+    default_class = None
+    for i, cl in enumerate(hypes['classes']):
+        for color in cl['colors']:
+            if color == 'default':
+                if default_class is not None:
+                    raise Exception(("The 'default' color was assigned to "
+                                     "class '%s' and to class '%s'.") %
+                                    (hypes['classes'][default_class]['name'],
+                                     hypes['classes'][i]['name']))
+                default_class = i
+            else:
+                if isinstance(color, basestring):
+                    if not color.startswith('#'):
+                        logging.error("Colors have to start with '#'. "
+                                      "It was '%s'." % color)
+                        raise Exception("Wrong color code.")
+                    else:
+                        color = color[1:]
+                        color = struct.unpack('BBB', color.decode('hex'))
+                if isinstance(color, list):
+                    color = tuple(color)
+                if color in color2class_dict:
+                    raise Exception(("The color '%s' was assigned multiple "
+                                     "times.") % str(color))
+                color2class_dict[color] = i
+    return color2class_dict, default_class
+
+
+def load_segmentation_mask(hypes, gt_image_path):
+    """
+    Load a segmentation mask from an image.
+
+    The mask is an integer array with shape (height, width). The integer values
+    range from 0 to N-1, where N is the total number of classes.
+
+    This requires hypes to have an entry 'classes'. This entry has to be a list
+    of dictionaries with key `colors`. This key is a list of HTML color strings
+    in RGB format.
+
+    ```
+    "classes": [
+      {"name": "road",
+       "colors": ["#ff0000", "#ff1000"],
+       "output": "#00ff007f"},
+      {"name": "background",
+       "colors": ["default", "#ff0000"],
+       "output": "#ff00007f"},
+      {"name": "ignore",
+       "colors": ["#000000"]}
+    ],
+    ```
+
+    The string `default` in the color list may only be in one class. If there
+    are colors which are not mapped to any other class, the class with
+    "default" gets assigned.
+
+    The index of the dictionary in the list is the value of the integer matrix
+    which is returned.
+
+    Parameters
+    ----------
+    hypes : dict
+        Hyperparameters
+    gt_image_path : str
+        Path to an image file.
+
+    Returns
+    -------
+    numpy array
+        The ground truth mask.
+
+    Note
+    ----
+    This function always loads the ground truth image in RGB mode. If the image
+    is not in RGB mode it will get converted to RGB. This is important to know
+    for the colors in hypes['classes'].
+    """
+    img = scipy.misc.imread(gt_image_path, mode='RGB')
+
+    # map colors to classes
+    color2class_dict, default_class = get_color2class(hypes)
+
+    # Create gt image which is a matrix of classes
+    gt = np.zeros((img.shape[0], img.shape[1]), dtype=int)  # only one channel
+    assigned = np.zeros((img.shape[0], img.shape[1]), dtype=int)
+    for color, class_label in color2class_dict.items():
+        affected_pixels = np.all(img == color, axis=2)
+        gt += affected_pixels * class_label
+        assigned += affected_pixels
+    remaining_pixels = np.logical_not(assigned)
+    if np.any(remaining_pixels):
+        if default_class is None:
+            print("[ERROR] Some pixels did not get assigned a class. ")
+            print("No 'default' class was assigned either.")
+            print("The pixel colors are:")
+            for i, row in enumerate(img):
+                for j, pixel in enumerate(row):
+                    pixel_color = tuple(pixel)
+                    if remaining_pixels[i][j]:
+                        print("  %s" % str(pixel_color))
+            sys.exit(-1)
+        else:
+            gt += remaining_pixels * default_class
+    return gt
