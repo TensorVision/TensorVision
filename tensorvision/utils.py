@@ -13,7 +13,7 @@ import matplotlib.cm as cm
 
 # https://github.com/tensorflow/tensorflow/issues/2034#issuecomment-220820070
 import numpy as np
-import scipy
+import scipy.misc
 import sys
 import struct
 
