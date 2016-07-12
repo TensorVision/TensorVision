@@ -10,6 +10,9 @@ import logging
 import os.path
 import sys
 
+import scipy as scp
+import scipy.misc
+
 # configure logging
 if 'TV_IS_DEV' in os.environ and os.environ['TV_IS_DEV']:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
@@ -34,6 +37,19 @@ flags.DEFINE_string('logdir', None,
                     'Directory where logs are stored.')
 
 
+def _create_input_placeholder():
+    image_pl = tf.placeholder(tf.float32)
+    label_pl = tf.placeholder(tf.float32)
+    return image_pl, label_pl
+
+
+def _write_images_to_logdir(images, logdir):
+    logdir = os.path.join(logdir, "eval/")
+    for name, image in images:
+        save_file = os.path.join(logdir, name)
+        scp.misc.imsave(save_file, image)
+
+
 def do_analyze(logdir):
     """
     Analyze a trained model.
@@ -50,27 +66,32 @@ def do_analyze(logdir):
     modules = utils.load_modules_from_logdir(logdir)
     data_input, arch, objective, solver = modules
 
-    logging_file = os.path.join(logdir, "eval/analysis.log")
-    utils.create_filewrite_handler(logging_file)
-
     # Tell TensorFlow that the model will be built into the default Graph.
     with tf.Graph().as_default():
 
-        # build the graph based on the loaded modules
-        graph_ops = core.build_graph(hypes, modules, train=False)
-        q, train_op, loss, eval_lists = graph_ops
-        q = graph_ops[0]
-
         # prepaire the tv session
+
+        with tf.name_scope('Validation'):
+            image_pl, label_pl = _create_input_placeholder()
+            image = tf.expand_dims(image_pl, 0)
+            softmax = core.build_inference_graph(hypes, modules,
+                                                 image=image,
+                                                 label=label_pl)
+
         sess_coll = core.start_tv_session(hypes)
         sess, saver, summary_op, summary_writer, coord, threads = sess_coll
 
         core.load_weights(logdir, sess, saver)
-        # Start the data load
-        data_input.start_enqueuing_threads(hypes, q['val'], 'val', sess,
-                                           hypes['dirs']['data_dir'])
 
-    return core.do_eval(hypes, eval_lists, 'val', sess)
+        eval_dict, images = objective.tensor_eval(hypes, sess, image_pl,
+                                                  softmax)
+
+        logging_file = os.path.join(logdir, "eval/analysis.log")
+        utils.create_filewrite_handler(logging_file)
+
+        utils.print_eval_dict(eval_dict)
+        _write_images_to_logdir(images, logdir)
+    return
 
 
 # Utility functions for analyzing models

@@ -29,6 +29,13 @@ flags.DEFINE_string('gpus', None,
                      'ids. [e.g. --gpus 0,3]'))
 
 
+def print_eval_dict(eval_dict):
+    logging.info('Results of Evaluation.')
+    for name, value in eval_dict:
+            logging.info('    %s : % 0.04f ' % (name, value))
+    return
+
+
 def set_dirs(hypes, hypes_fname):
     """
     Add directories to hypes.
@@ -81,6 +88,8 @@ def set_dirs(hypes, hypes_fname):
             data_dir = os.path.join(base_path, 'DATA')
 
         hypes['dirs']['data_dir'] = data_dir
+
+    _add_paths_to_sys(hypes)
 
     return
 
