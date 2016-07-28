@@ -8,7 +8,7 @@ TensorVision is a simple toolkit to easily apply image classification networks.
 
 ## Installation
 
-You can install a known compatible version of Theano and the latest Lasagne development version via:
+You can install TensorVision and its requirements via:
 
 ```bash
 $ pip install -r https://raw.githubusercontent.com/TensorVision/TensorVision/master/requirements.txt
