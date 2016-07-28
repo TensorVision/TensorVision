@@ -361,6 +361,64 @@ def merge_cms(cm1, cm2):
     return cm
 
 
+def get_color_distribution(labeled_dataset):
+    """
+    Get the distribution of colors of masks in a labeled dataset.
+
+    Parameters
+    ----------
+    labeled_dataset : list of dicts
+        Each dict has to have the keys 'raw' and 'mask' which have the absolute
+        path to image files.
+
+    Returns
+    -------
+    dict
+        Mapping colors to pixel counts.
+    """
+    colors = {}
+    for item in labeled_dataset:
+        im = scipy.misc.imread(item['mask'], flatten=False, mode='RGB')
+        for y in range(im.shape[0]):
+            for x in range(im.shape[1]):
+                color = tuple(im[y][x])
+                if color in colors:
+                    colors[color] += 1
+                else:
+                    colors[color] = 1
+    return colors
+
+
+def get_class_distribution(hypes, labeled_dataset):
+    """
+    Get the distribution of classes in a labeled dataset.
+
+    Parameters
+    ----------
+    hypes : dict
+        The hyperparameters have to specify 'classes'.
+    labeled_dataset : list of dicts
+        Each dict has to have the keys 'raw' and 'mask' which have the absolute
+        path to image files.
+
+    Returns
+    -------
+    dict
+        Mapping class indices according to hypes['classes'] to pixel counts.
+    """
+    classes = {}
+    for item in labeled_dataset:
+        im = utils.load_segmentation_mask(hypes, item['mask'])
+        for y in range(im.shape[0]):
+            for x in range(im.shape[1]):
+                cl = im[y][x]
+                if cl in classes:
+                    classes[cl] += 1
+                else:
+                    classes[cl] = 1
+    return classes
+
+
 def main(_):
     """Run main function."""
     if FLAGS.logdir is None:

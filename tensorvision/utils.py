@@ -298,6 +298,36 @@ def load_plugins():
                             pyfile)
 
 
+def load_labeled_files_json(json_datafile_path):
+    """
+    Load a JSON file which contains a list of {'raw': 'xy', 'mask': 'z'}.
+
+    Parameters
+    ----------
+    json_datafile_path : str
+        Path to a JSON file which contains a list of labeled images.
+
+    Returns
+    -------
+    list of dictionaries
+    """
+    with open(json_datafile_path) as data_file:
+        data = json.load(data_file)
+    base_path = os.path.dirname(os.path.realpath(json_datafile_path))
+    for i in range(len(data)):
+        if not os.path.isabs(data[i]['raw']):
+            data[i]['raw'] = os.path.realpath(os.path.join(base_path,
+                                                           data[i]['raw']))
+            if not os.path.isfile(data[i]['raw']):
+                logging.warning("'%s' does not exist.", data[i]['raw'])
+        if not os.path.isabs(data[i]['mask']):
+            data[i]['mask'] = os.path.realpath(os.path.join(base_path,
+                                                            data[i]['mask']))
+            if not os.path.isfile(data[i]['mask']):
+                logging.warning("'%s' does not exist.", data[i]['mask'])
+    return data
+
+
 def overlay_segmentation(input_image, segmentation, color_dict):
     """
     Overlay input_image with a hard segmentation result.

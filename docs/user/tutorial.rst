@@ -104,3 +104,84 @@ to find a minimum of the loss function.
 
 .. _Modell Zoo: https://github.com/TensorVision/modell_zoo
 .. _FIFOQueue : https://www.tensorflow.org/versions/r0.8/how_tos/threading_and_queues/index.html
+
+
+Scripts
+=======
+
+TensorVision brings some scripts which you can use:
+
+* ``tv-train``: Trains, evaluates and saves the model network using a queue.
+* ``tv-continue``: Continues training of a model from logdir.
+* ``tv-analyze``: Evaluates the model.
+* ``tv-maskstats``: Get statistics about the distribution of classes in the masks.
+
+
+Hypes file
+==========
+
+TensorVision makes use of a configuration file for each project. As it was
+originally intended to have hyperparameters of models, it is commonly called
+"hypes file" or ``hypes.json`` throughout this project.
+
+This configuration file allows you to adjust given networks easily to new
+problem domains.
+
+
+data
+----
+
+It is recommended to create one json file for the training data sources as
+well as one for the testing data sources. Each file is a list of dictionaries,
+where each dictionary has the keys ``raw`` and ``mask``. For example, your
+``trainfiles.json`` could look like this:
+
+.. code-block:: json
+
+    [
+        {
+            "raw": "/home/moose/GitHub/MediSeg/DATA/OP1/img_00.png",
+            "mask": "/home/moose/GitHub/MediSeg/DATA/OP1/img_00_GT.png"
+        },
+        {
+            "raw": "/home/moose/GitHub/MediSeg/DATA/OP1/img_01.png",
+            "mask": "/home/moose/GitHub/MediSeg/DATA/OP1/img_01_GT.png"
+        },
+        {
+            "raw": "/home/moose/GitHub/MediSeg/DATA/OP1/img_02.png",
+            "mask": "/home/moose/GitHub/MediSeg/DATA/OP1/img_02_GT.png"
+        }
+    ]
+
+You should add the path of those files to your ``hypes.json``:
+
+
+.. code-block:: json
+
+    "data": {
+      "train": "../../DATA/trainfiles.json",
+      "test": "../../DATA/testfiles.json"
+    },
+
+While this is not required, it will allow you to use ``tv-maskstats`` and make
+your code more readable and easier to adjust.
+
+
+classes
+-------
+
+It is recommended to add a description of your labeled data to your
+hyperparameters file. This makes your code more readable and gives the
+possibility to use ``tv-maskstats`` as well as :func:`tensorvision.utils.load_segmentation_mask`.
+The ``classes`` block looks like this:
+
+.. code-block:: json
+
+    "classes": [
+        {"name": "background",
+         "colors": ["#000000"],
+         "output": "#ff000000"},
+        {"name": "instrument",
+         "colors": ["#464646", "#a0a0a0", "#ffffff", "default"],
+         "output": "#00ff007f"}
+     ]
