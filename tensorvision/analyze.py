@@ -323,6 +323,43 @@ def get_recall(n):
     return float(n[1][1]) / (n[1][0] + n[1][1])
 
 
+def get_f_score(n, beta=1):
+    """
+    Compute the F-beta score.
+
+    The F(1) score is the harmonic mean of precision and recall. The worst
+    value is 0, the best value is 1.
+
+    ``beta < 1`` adds more weight on precision, while ``beta > 1`` adds more
+    weight on recall.
+
+    Parameters
+    ----------
+    n : dict
+        Confusion matrix which has integer keys 0, ..., nb_classes - 1;
+        an entry n[i][j] is the count how often class i was classified as
+        class j.
+    beta : float
+
+    Returns
+    -------
+    float
+        F-Score (in [0, 1])
+
+    Examples
+    --------
+    >>> n = {0: {0: 10, 1: 2}, 1: {0: 5, 1: 83}}
+    >>> get_recall(n)
+    0.9431818181818182
+    """
+    assert len(n) == 2, "F-score is only defined for binary problems"
+    assert beta > 0.0
+    #                         true positive
+    return (((1 + beta**2) * float(n[1][1])) /
+            #            true negative       false negative false positive
+            ((1 + beta**2) * n[1][1] + beta**2 * n[1][0] + n[0][1]))
+
+
 def merge_cms(cm1, cm2):
     """
     Merge two confusion matrices.

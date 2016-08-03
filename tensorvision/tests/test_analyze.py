@@ -56,6 +56,14 @@ def test_get_recall():
     assert abs(get_recall(n) - 0.9431818181818182) <= 0.0001
 
 
+def test_f_score():
+    """Test if get_f_score works."""
+    from tensorvision.analyze import get_f_score
+    n = {0: {0: 10, 1: 2}, 1: {0: 5, 1: 83}}
+    assert abs(get_f_score(n) - 0.959537572254) <= 0.0001
+    assert abs(get_f_score(n, beta=0.5) - 0.969626168224) <= 0.0001
+
+
 def test_merge_cms():
     """Test if merge_cms works."""
     from tensorvision.analyze import merge_cms

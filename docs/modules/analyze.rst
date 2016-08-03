@@ -11,4 +11,5 @@
 .. autofunction:: get_frequency_weighted_iou
 .. autofunction:: get_precision
 .. autofunction:: get_recall
+.. autofunction:: get_f_score
 .. autofunction:: merge_cms
