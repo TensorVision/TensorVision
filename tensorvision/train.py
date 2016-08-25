@@ -137,6 +137,8 @@ def build_training_graph(hypes, modules):
     data_input, arch, objective, solver = modules
 
     global_step = tf.Variable(0.0, trainable=False)
+    learning_rate = tf.placeholder(tf.float32)
+    tf.scalar_summary('learning_rate', learning_rate)
 
     q, logits, decoder, = {}, {}, {}
     image_batch, label_batch = {}, {}
@@ -149,7 +151,8 @@ def build_training_graph(hypes, modules):
                                         hypes['dirs']['data_dir'])
         image_batch['train'], label_batch['train'] = input_batch
 
-    logits['train'] = arch.inference(hypes, image_batch['train'], 'train')
+    logits['train'] = arch.inference(hypes, image_batch['train'],
+                                     train=True)
 
     decoder['train'] = objective.decoder(hypes, logits['train'])
 
@@ -157,7 +160,9 @@ def build_training_graph(hypes, modules):
     loss = objective.loss(hypes, decoder['train'], label_batch['train'])
 
     # Add to the Graph the Ops that calculate and apply gradients.
-    train_op = solver.training(hypes, loss, global_step=global_step)
+    train_op = solver.training(hypes, loss,
+                               global_step=global_step,
+                               learning_rate=learning_rate)
 
     # Add the Op to compare the logits to the labels during evaluation.
     if hasattr(objective, 'evaluation'):
@@ -174,7 +179,8 @@ def build_training_graph(hypes, modules):
 
             tf.get_variable_scope().reuse_variables()
 
-        logits['val'] = arch.inference(hypes, image_batch['val'], 'val')
+        logits['val'] = arch.inference(hypes, image_batch['val'],
+                                       train=False)
 
         decoder['val'] = objective.decoder(hypes, logits['val'])
 
@@ -182,7 +188,7 @@ def build_training_graph(hypes, modules):
             eval_lists['val'] = objective.evaluation(hypes, decoder['val'],
                                                      label_batch['val'])
 
-    return q, train_op, loss, eval_lists
+    return q, train_op, loss, eval_lists, learning_rate
 
 
 def maybe_download_and_extract(hypes):
@@ -225,22 +231,24 @@ def _write_evaluation_to_summary(evaluation_results, summary_writer, phase,
     summary_writer.add_summary(summary, global_step)
 
 
-def _print_training_status(hypes, step, loss_value, start_time, sess_coll):
+def _print_training_status(hypes, step, loss_value, summary_str,
+                           start_time, sess_coll):
     duration = (time.time() - start_time) / int(utils.cfg.step_show)
     examples_per_sec = hypes['solver']['batch_size'] / duration
     sec_per_batch = float(duration)
     info_str = utils.cfg.step_str
 
     sess, saver, summary_op, summary_writer, coord, threads = sess_coll
+
+    # Update the events file.
+    summary_writer.add_summary(summary_str, step)
+
     logging.info(info_str.format(step=step,
                                  total_steps=hypes['solver']['max_steps'],
                                  loss_value=loss_value,
                                  sec_per_batch=sec_per_batch,
                                  examples_per_sec=examples_per_sec)
                  )
-    # Update the events file.
-    summary_str = sess.run(summary_op)
-    summary_writer.add_summary(summary_str, step)
 
 
 def _write_checkpoint_to_disk(hypes, step, sess_coll):
@@ -303,19 +311,29 @@ def _do_python_evaluation(hypes, step, sess_coll, objective,
 
 
 def run_training_step(hypes, step, start_time, graph_ops, sess_coll,
-                      objective, image_pl, softmax):
+                      modules, image_pl, softmax):
     """Run one iteration of training."""
     # Unpack operations for later use
-    sess = sess_coll[0]
-    q, train_op, loss, eval_dict = graph_ops
+    sess, saver, summary_op, summary_writer, coord, threads = sess_coll
+
+    q, train_op, loss, eval_dict, learning_rate = graph_ops
+    data_input, arch, objective, solver = modules
+
+    lr = solver.get_learning_rate(hypes, step)
+    feed_dict = {learning_rate: lr}
 
     # Run the training Step
-    _, loss_value = sess.run([train_op, loss])
+
+    if step % int(utils.cfg.step_show):
+        sess.run([train_op], feed_dict=feed_dict)
 
     # Write the summaries and print an overview fairly often.
-    if step % int(utils.cfg.step_show) == 0:
+    elif step % int(utils.cfg.step_show) == 0:
         # Print status to stdout.
-        _print_training_status(hypes, step, loss_value, start_time, sess_coll)
+        _, loss_value, summary_str = sess.run([train_op, loss, summary_op],
+                                              feed_dict=feed_dict)
+        _print_training_status(hypes, step, loss_value, summary_str,
+                               start_time, sess_coll)
         # Reset timer
         start_time = time.time()
 
@@ -395,7 +413,7 @@ def do_training(hypes):
         start_time = time.time()
         for step in xrange(hypes['solver']['max_steps']):
             start_time = run_training_step(hypes, step, start_time,
-                                           graph_ops, sess_coll, objective,
+                                           graph_ops, sess_coll, modules,
                                            image_pl, softmax)
             if hasattr(solver, 'update_learning_rate'):
                 solver.update_learning_rate(hypes, step)
@@ -454,7 +472,7 @@ def continue_training(logdir):
         start_time = time.time()
         for step in xrange(cur_step+1, hypes['solver']['max_steps']):
             start_time = run_training_step(hypes, step, start_time,
-                                           graph_ops, sess_coll, objective,
+                                           graph_ops, sess_coll, modules,
                                            image_pl, softmax)
 
         # stopping input Threads

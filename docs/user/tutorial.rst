@@ -97,8 +97,7 @@ Adjust the solver file
 ----------------------
 
 The ``optimizer_file`` contains the path to a Python file. This Python file has
-to have a function ``training(H, loss, global_step)``. It defines how one tries
-to find a minimum of the loss function.
+to have a function ``training(H, loss, global_step, learning_rate)``. It defines how one tries to find a minimum of the loss function. Additionally it should provide a function ``get_learning_rate(hype, global_step)``, which returns the current learning rate at each step.
 
 
 
