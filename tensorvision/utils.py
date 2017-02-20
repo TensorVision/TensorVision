@@ -17,6 +17,8 @@ import scipy.misc
 import sys
 import struct
 
+from six.moves import urllib
+
 import tensorflow as tf
 
 # Basic model parameters as external flags.
@@ -29,10 +31,28 @@ flags.DEFINE_string('gpus', None,
                      'ids. [e.g. --gpus 0,3]'))
 
 
-def print_eval_dict(eval_dict):
-    logging.info('Results of Evaluation.')
+def download(url, dest_directory):
+    filename = url.split('/')[-1]
+    filepath = os.path.join(dest_directory, filename)
+
+    logging.info("Download URL: {}".format(url))
+    logging.info("Download DIR: {}".format(dest_directory))
+
+    def _progress(count, block_size, total_size):
+                prog = float(count * block_size) / float(total_size) * 100.0
+                sys.stdout.write('\r>> Downloading %s %.1f%%' %
+                                 (filename, prog))
+                sys.stdout.flush()
+
+    filepath, _ = urllib.request.urlretrieve(url, filepath,
+                                             reporthook=_progress)
+    print()
+    return filepath
+
+
+def print_eval_dict(eval_dict, prefix=''):
     for name, value in eval_dict:
-            logging.info('    %s : % 0.04f ' % (name, value))
+            logging.info('    %s %s : % 0.04f ' % (name, prefix, value))
     return
 
 
@@ -62,7 +82,7 @@ def set_dirs(hypes, hypes_fname):
         if 'TV_DIR_RUNS' in os.environ:
             runs_dir = os.path.join(base_path, os.environ['TV_DIR_RUNS'])
         else:
-            runs_dir = os.path.join(base_path, 'RUNS')
+            runs_dir = os.path.join(base_path, '../RUNS')
 
         # test for project dir
         if hasattr(FLAGS, 'project') and FLAGS.project is not None:
@@ -85,7 +105,7 @@ def set_dirs(hypes, hypes_fname):
         if 'TV_DIR_DATA' in os.environ:
             data_dir = os.path.join(base_path, os.environ['TV_DIR_DATA'])
         else:
-            data_dir = os.path.join(base_path, 'DATA')
+            data_dir = os.path.join(base_path, '../DATA')
 
         hypes['dirs']['data_dir'] = data_dir
 
@@ -111,7 +131,7 @@ def set_gpus_to_use():
         os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpus
 
 
-def load_modules_from_hypes(hypes):
+def load_modules_from_hypes(hypes, postfix=""):
     """Load all modules from the files specified in hypes.
 
     Namely the modules loaded are:
@@ -126,18 +146,31 @@ def load_modules_from_hypes(hypes):
     -------
     hypes, data_input, arch, objective, solver
     """
+    modules = {}
     base_path = hypes['dirs']['base_path']
-    _add_paths_to_sys(hypes)
-    f = os.path.join(base_path, hypes['model']['input_file'])
-    data_input = imp.load_source("input", f)
-    f = os.path.join(base_path, hypes['model']['architecture_file'])
-    arch = imp.load_source("arch", f)
-    f = os.path.join(base_path, hypes['model']['objective_file'])
-    objective = imp.load_source("objective", f)
-    f = os.path.join(base_path, hypes['model']['optimizer_file'])
-    solver = imp.load_source("solver", f)
 
-    return data_input, arch, objective, solver
+    # _add_paths_to_sys(hypes)
+    f = os.path.join(base_path, hypes['model']['input_file'])
+    data_input = imp.load_source("input_%s" % postfix, f)
+    modules['input'] = data_input
+
+    f = os.path.join(base_path, hypes['model']['architecture_file'])
+    arch = imp.load_source("arch_%s" % postfix, f)
+    modules['arch'] = arch
+
+    f = os.path.join(base_path, hypes['model']['objective_file'])
+    objective = imp.load_source("objective_%s" % postfix, f)
+    modules['objective'] = objective
+
+    f = os.path.join(base_path, hypes['model']['optimizer_file'])
+    solver = imp.load_source("solver_%s" % postfix, f)
+    modules['solver'] = solver
+
+    f = os.path.join(base_path, hypes['model']['evaluator_file'])
+    eva = imp.load_source("evaluator_%s" % postfix, f)
+    modules['eval'] = eva
+
+    return modules
 
 
 def _add_paths_to_sys(hypes):
@@ -152,17 +185,14 @@ def _add_paths_to_sys(hypes):
         Hyperparameters
     """
     base_path = hypes['dirs']['base_path']
-    for module in hypes['model'].values():
-        path = os.path.realpath(os.path.join(base_path, module))
-        sys.path.append(os.path.dirname(path))
     if 'path' in hypes:
             for path in hypes['path']:
                 path = os.path.realpath(os.path.join(base_path, path))
-                sys.path.append(path)
+                sys.path.insert(1, path)
     return
 
 
-def load_modules_from_logdir(logdir):
+def load_modules_from_logdir(logdir, dirname="model_files", postfix=""):
     """Load hypes from the logdir.
 
     Namely the modules loaded are:
@@ -177,21 +207,30 @@ def load_modules_from_logdir(logdir):
     -------
     data_input, arch, objective, solver
     """
-    model_dir = os.path.join(logdir, "model_files")
+    model_dir = os.path.join(logdir, dirname)
     f = os.path.join(model_dir, "data_input.py")
     # TODO: create warning if file f does not exists
-    data_input = imp.load_source("input", f)
+    data_input = imp.load_source("input_%s" % postfix, f)
     f = os.path.join(model_dir, "architecture.py")
-    arch = imp.load_source("arch", f)
+    arch = imp.load_source("arch_%s" % postfix, f)
     f = os.path.join(model_dir, "objective.py")
-    objective = imp.load_source("objective", f)
+    objective = imp.load_source("objective_%s" % postfix, f)
     f = os.path.join(model_dir, "solver.py")
-    solver = imp.load_source("solver", f)
+    solver = imp.load_source("solver_%s" % postfix, f)
 
-    return data_input, arch, objective, solver
+    f = os.path.join(model_dir, "eval.py")
+    eva = imp.load_source("evaluator_%s" % postfix, f)
+    modules = {}
+    modules['input'] = data_input
+    modules['arch'] = arch
+    modules['objective'] = objective
+    modules['solver'] = solver
+    modules['eval'] = eva
+
+    return modules
 
 
-def load_hypes_from_logdir(logdir):
+def load_hypes_from_logdir(logdir, subdir="model_files", base_path=None):
     """Load hypes from the logdir.
 
     Namely the modules loaded are:
@@ -206,13 +245,27 @@ def load_hypes_from_logdir(logdir):
     -------
     hypes
     """
-    hypes_fname = os.path.join(logdir, "model_files/hypes.json")
+    model_dir = os.path.join(logdir, subdir)
+    hypes_fname = os.path.join(model_dir, "hypes.json")
     with open(hypes_fname, 'r') as f:
         logging.info("f: %s", f)
         hypes = json.load(f)
+
+    hypes['dirs']['output_dir'] = os.path.realpath(logdir)
+    hypes['dirs']['image_dir'] = os.path.join(hypes['dirs']['output_dir'],
+                                              'images')
+
+    if base_path is not None:
+        hypes['dirs']['base_path'] = os.path.realpath(base_path)
+
     _add_paths_to_sys(hypes)
-    hypes['dirs']['base_path'] = logdir
-    hypes['dirs']['output_dir'] = logdir
+
+    if 'TV_DIR_DATA' in os.environ:
+        data_dir = os.environ['TV_DIR_DATA']
+    else:
+        data_dir = 'DATA'
+
+    hypes['dirs']['data_dir'] = data_dir
 
     return hypes
 
@@ -279,9 +332,10 @@ _set_cfg_value('step_write', 'TV_STEP_WRITE', 1000, cfg)
 _set_cfg_value('max_to_keep', 'TV_MAX_KEEP', 10, cfg)
 _set_cfg_value('step_str',
                'TV_STEP_STR',
-               ('Step {step}/{total_steps}: loss = {loss_value:.2f} '
-                '( {sec_per_batch:.3f} sec (per Batch); '
-                '{examples_per_sec:.1f} examples/sec)'),
+               ('Step {step}/{total_steps}: loss = {loss_value:.2f}; '
+                'lr = {lr_value:.2e}; '
+                '{sec_per_batch:.3f} sec (per Batch); '
+                '{examples_per_sec:.1f} imgs/sec'),
                cfg)
 
 
@@ -362,6 +416,39 @@ def overlay_segmentation(input_image, segmentation, color_dict):
                 output.putpixel((y, x), color_dict[segmentation[x, y]])
             elif 'default' in color_dict:
                 output.putpixel((y, x), color_dict['default'])
+
+    background = scipy.misc.toimage(input_image)
+    background.paste(output, box=None, mask=output)
+
+    return np.array(background)
+
+
+def fast_overlay(input_image, segmentation, color=[0, 255, 0, 127]):
+    """
+    Overlay input_image with a hard segmentation result for two classes.
+
+    Store the result with the same name as segmentation_image, but with
+    `-overlay`.
+
+    Parameters
+    ----------
+    input_image : numpy.array
+        An image of shape [width, height, 3].
+    segmentation : numpy.array
+        Segmentation of shape [width, height].
+    color: color for forground class
+
+    Returns
+    -------
+    numpy.array
+        The image overlayed with the segmenation
+    """
+    color = np.array(color).reshape(1, 4)
+    shape = input_image.shape
+    segmentation = segmentation.reshape(shape[0], shape[1], 1)
+
+    output = np.dot(segmentation, color)
+    output = scipy.misc.toimage(output, mode="RGBA")
 
     background = scipy.misc.toimage(input_image)
     background.paste(output, box=None, mask=output)

@@ -37,20 +37,16 @@ flags.DEFINE_string('logdir', None,
                     'Directory where logs are stored.')
 
 
-def _create_input_placeholder():
-    image_pl = tf.placeholder(tf.float32)
-    label_pl = tf.placeholder(tf.float32)
-    return image_pl, label_pl
-
-
 def _write_images_to_logdir(images, logdir):
-    logdir = os.path.join(logdir, "eval/")
+    logdir = os.path.join(logdir, "images/")
+    if not os.path.exists(logdir):
+        os.mkdir(logdir)
     for name, image in images:
         save_file = os.path.join(logdir, name)
         scp.misc.imsave(save_file, image)
 
 
-def do_analyze(logdir):
+def do_analyze(logdir, base_path=None):
     """
     Analyze a trained model.
 
@@ -64,34 +60,43 @@ def do_analyze(logdir):
     """
     hypes = utils.load_hypes_from_logdir(logdir)
     modules = utils.load_modules_from_logdir(logdir)
-    data_input, arch, objective, solver = modules
+
+    if base_path is not None:
+        hypes['dirs']['base_path'] = base_path
 
     # Tell TensorFlow that the model will be built into the default Graph.
     with tf.Graph().as_default():
 
         # prepaire the tv session
 
-        with tf.name_scope('Validation'):
-            image_pl, label_pl = _create_input_placeholder()
-            image = tf.expand_dims(image_pl, 0)
-            softmax = core.build_inference_graph(hypes, modules,
-                                                 image=image,
-                                                 label=label_pl)
+        image_pl = tf.placeholder(tf.float32)
+        image = tf.expand_dims(image_pl, 0)
+        inf_out = core.build_inference_graph(hypes, modules,
+                                             image=image)
 
-        sess_coll = core.start_tv_session(hypes)
-        sess, saver, summary_op, summary_writer, coord, threads = sess_coll
+        # Create a session for running Ops on the Graph.
+        sess = tf.Session()
+        saver = tf.train.Saver()
 
         core.load_weights(logdir, sess, saver)
 
-        eval_dict, images = objective.tensor_eval(hypes, sess, image_pl,
-                                                  softmax)
+        logging.info("Graph loaded succesfully. Starting evaluation.")
 
-        logging_file = os.path.join(logdir, "eval/analysis.log")
+        output_dir = os.path.join(logdir, 'analyse')
+
+        logging.info("Output Images will be written to: {}".format(
+            os.path.join(output_dir, "images/")))
+
+        logging_file = os.path.join(logdir, "analyse/output.log")
         utils.create_filewrite_handler(logging_file)
 
+        eval_dict, images = modules['eval'].evaluate(
+            hypes, sess, image_pl, inf_out)
+
+        logging.info("Evaluation Succesfull. Results:")
+
         utils.print_eval_dict(eval_dict)
-        _write_images_to_logdir(images, logdir)
-    return
+        _write_images_to_logdir(images, output_dir)
 
 
 # Utility functions for analyzing models

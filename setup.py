@@ -27,8 +27,7 @@ except IOError:
     README = CHANGES = ''
 
 install_requires = ['numpy',
-                    'scipy',
-                    'tensorflow']
+                    'scipy']
 
 tests_require = ['mock',
                  'pytest',

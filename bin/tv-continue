@@ -39,7 +39,7 @@ def main(_):
     """Run main function for continue training."""
     if FLAGS.logdir is None:
         logging.error("No logdir is given.")
-        logging.error("Usage: tv-analyze --logdir dir")
+        logging.error("Usage: tv-continue --logdir dir")
         exit(1)
 
     utils.set_gpus_to_use()
