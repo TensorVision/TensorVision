@@ -367,7 +367,7 @@ def do_training(hypes):
     modules = utils.load_modules_from_hypes(hypes)
 
     # Tell TensorFlow that the model will be built into the default Graph.
-    with tf.Graph().as_default():
+    with tf.Session() as sess:
 
         # build the graph based on the loaded modules
         with tf.name_scope("Queues"):
@@ -377,12 +377,12 @@ def do_training(hypes):
 
         # prepaire the tv session
         tv_sess = core.start_tv_session(hypes)
-        sess = tv_sess['sess']
 
         with tf.name_scope('Validation'):
             tf.get_variable_scope().reuse_variables()
             image_pl = tf.placeholder(tf.float32)
             image = tf.expand_dims(image_pl, 0)
+            image.set_shape([1, None, None, 3])
             inf_out = core.build_inference_graph(hypes, modules,
                                                  image=image)
             tv_graph['image_pl'] = image_pl
@@ -415,7 +415,7 @@ def continue_training(logdir):
     modules = utils.load_modules_from_logdir(logdir)
 
     # Tell TensorFlow that the model will be built into the default Graph.
-    with tf.Graph().as_default():
+    with tf.Session() as sess:
 
         # build the graph based on the loaded modules
         with tf.name_scope("Queues"):
@@ -445,6 +445,7 @@ def continue_training(logdir):
             tf.get_variable_scope().reuse_variables()
             image_pl = tf.placeholder(tf.float32)
             image = tf.expand_dims(image_pl, 0)
+            image.set_shape([1, None, None, 3])
             inf_out = core.build_inference_graph(hypes, modules,
                                                  image=image)
             tv_graph['image_pl'] = image_pl
