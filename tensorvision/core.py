@@ -156,15 +156,18 @@ def start_tv_session(hypes):
         kc = hypes['solver']['keep_checkpoint_every_n_hours']
     else:
         kc = 10000.0
-    saver = tf.train.Saver(max_to_keep=int(utils.cfg.max_to_keep),
-                           keep_checkpoint_every_n_hours=kc)
 
-    # Create a session for running Ops on the Graph.
-    sess = tf.Session()
+    saver = tf.train.Saver(max_to_keep=int(utils.cfg.max_to_keep))
+
+    sess = tf.get_default_session()
 
     # Run the Op to initialize the variables.
-    init = tf.global_variables_initializer()
-    sess.run(init)
+    if 'init_function' in hypes:
+        _initalize_variables = hypes['init_function']
+        _initalize_variables(hypes)
+    else:
+        init = tf.global_variables_initializer()
+        sess.run(init)
 
     # Start the queue runners.
     coord = tf.train.Coordinator()
