@@ -71,6 +71,7 @@ def do_analyze(logdir, base_path=None):
 
         image_pl = tf.placeholder(tf.float32)
         image = tf.expand_dims(image_pl, 0)
+        image.set_shape([1, None, None, 3])
         inf_out = core.build_inference_graph(hypes, modules,
                                              image=image)
 
