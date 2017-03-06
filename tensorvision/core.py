@@ -14,6 +14,12 @@ import tensorflow as tf
 
 import tensorvision.utils as utils
 
+flags = tf.app.flags
+FLAGS = flags.FLAGS
+
+tf.app.flags.DEFINE_boolean(
+    'summary', True, ('Whether or not to save summaries to tensorboard.'))
+
 
 def load_weights(checkpoint_dir, sess, saver):
     """
@@ -107,6 +113,7 @@ def build_training_graph(hypes, queue, modules):
     graph['train_op'] = train_op
     graph['global_step'] = global_step
     graph['learning_rate'] = learning_rate
+    graph['decoded_logits'] = learning_rate
 
     return graph
 
@@ -149,7 +156,12 @@ def start_tv_session(hypes):
         (sess, saver, summary_op, summary_writer, threads)
     """
     # Build the summary operation based on the TF collection of Summaries.
-    summary_op = tf.summary.merge_all()
+    if FLAGS.summary:
+        tf.contrib.layers.summarize_collection(tf.GraphKeys.WEIGHTS)
+        tf.contrib.layers.summarize_collection(tf.GraphKeys.BIASES)
+        summary_op = tf.summary.merge_all()
+    else:
+        summary_op = None
 
     # Create a saver for writing training checkpoints.
     if 'keep_checkpoint_every_n_hours' in hypes['solver']:

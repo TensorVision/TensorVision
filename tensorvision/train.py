@@ -257,9 +257,10 @@ def run_training(hypes, modules, tv_graph, tv_sess, start_step=0):
 
             if step % write_iter == 0:
                 # write values to summary
-                summary_str = sess.run(tv_sess['summary_op'],
-                                       feed_dict=feed_dict)
-                summary_writer.add_summary(summary_str, global_step=step)
+                if FLAGS.summary:
+                    summary_str = sess.run(tv_sess['summary_op'],
+                                           feed_dict=feed_dict)
+                    summary_writer.add_summary(summary_str, global_step=step)
                 summary.value.add(tag='training/total_loss',
                                   simple_value=float(loss_value))
                 summary.value.add(tag='training/learning_rate',
