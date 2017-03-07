@@ -221,7 +221,7 @@ def run_training(hypes, modules, tv_graph, tv_sess, start_step=0):
     save_iter = hypes['logging']['save_iter']
     image_iter = hypes['logging'].get('image_iter', 5*save_iter)
 
-    py_smoother = MedianSmoother(50)
+    py_smoother = MedianSmoother(20)
     dict_smoother = ExpoSmoother(0.95)
 
     n = 0
@@ -255,29 +255,29 @@ def run_training(hypes, modules, tv_graph, tv_sess, start_step=0):
 
             _print_eval_dict(eval_names, smoothed_results, prefix='(smooth)')
 
-            if step % write_iter == 0:
-                # write values to summary
-                if FLAGS.summary:
-                    summary_str = sess.run(tv_sess['summary_op'],
-                                           feed_dict=feed_dict)
-                    summary_writer.add_summary(summary_str, global_step=step)
-                summary.value.add(tag='training/total_loss',
-                                  simple_value=float(loss_value))
-                summary.value.add(tag='training/learning_rate',
-                                  simple_value=lr)
-                summary_writer.add_summary(summary, step)
-                # Convert numpy types to simple types.
-                eval_results = np.array(eval_results)
-                eval_results = eval_results.tolist()
-                eval_dict = zip(eval_names, eval_results)
-                _write_eval_dict_to_summary(eval_dict, 'Eval/raw',
-                                            summary_writer, step)
-                eval_dict = zip(eval_names, smoothed_results)
-                _write_eval_dict_to_summary(eval_dict, 'Eval/smooth',
-                                            summary_writer, step)
-
             # Reset timer
             start_time = time.time()
+
+        if step % write_iter == 0:
+            # write values to summary
+            if FLAGS.summary:
+                summary_str = sess.run(tv_sess['summary_op'],
+                                       feed_dict=feed_dict)
+                summary_writer.add_summary(summary_str, global_step=step)
+            summary.value.add(tag='training/total_loss',
+                              simple_value=float(loss_value))
+            summary.value.add(tag='training/learning_rate',
+                              simple_value=lr)
+            summary_writer.add_summary(summary, step)
+            # Convert numpy types to simple types.
+            eval_results = np.array(eval_results)
+            eval_results = eval_results.tolist()
+            eval_dict = zip(eval_names, eval_results)
+            _write_eval_dict_to_summary(eval_dict, 'Eval/raw',
+                                        summary_writer, step)
+            eval_dict = zip(eval_names, smoothed_results)
+            _write_eval_dict_to_summary(eval_dict, 'Eval/smooth',
+                                        summary_writer, step)
 
         # Do a evaluation and print the current state
         if (step) % eval_iter == 0 and step > 0 or \
