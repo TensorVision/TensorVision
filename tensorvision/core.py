@@ -113,7 +113,7 @@ def build_training_graph(hypes, queue, modules):
     graph['train_op'] = train_op
     graph['global_step'] = global_step
     graph['learning_rate'] = learning_rate
-    graph['decoded_logits'] = learning_rate
+    graph['decoded_logits'] = decoded_logits
 
     return graph
 
