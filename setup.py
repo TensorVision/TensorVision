@@ -45,7 +45,8 @@ setup(
     description="A library to build and train neural networks "
                 "in with TensorFlow for Computer Vision",
     long_description="\n\n".join([README, CHANGES]),
-    classifiers=["Development Status :: 1 - Planning",
+    long_description_content_type='text/markdown',
+    classifiers=["Development Status :: 7 - Inactive",
                  "Intended Audience :: Developers",
                  "Intended Audience :: Science/Research",
                  "License :: OSI Approved :: MIT License",
